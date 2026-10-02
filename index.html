@@ -14,9 +14,10 @@
         button:hover { background-color: #45a049; }
         
         /* 測距儀結果顯示框 */
-        #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 16px; color: #00FF00; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
+        #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 15px; color: #00FF00; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 550px; margin-left: auto; margin-right: auto; }
         .highlight-text { color: #FFD700; font-weight: bold; font-size: 18px; }
-        .advice-item { display: block; margin-top: 8px; padding-left: 5px; color: #fff; }
+        .advice-item { display: block; margin-top: 8px; padding-left: 5px; color: #ddd; }
+        .level-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #333; color: #fff; font-size: 13px; margin-right: 5px; font-weight: bold; }
         
         .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -230,51 +231,70 @@
                     // 2. 計算偏斜視角 (三角函數 arctan)
                     let angle = Math.atan(x / y) * (180 / Math.PI);
                     
-                    // --- 距離評價 (裝備建議) ---
+                    // ==========================================
+                    // 📏 AI 距離評價 10 大級距
+                    // ==========================================
                     let distComment = "";
-                    if (distance <= 15) {
-                        distComment = "🔥 <b>距離評估：</b>神仙距離！肉眼直視毫無壓力，連汗珠都看得到。";
+                    if (distance <= 6) {
+                        distComment = "<span class='level-tag' style='background:#FF0000;'>Lv.1 貼臉神位</span> 0~6m：肉眼連偶像的呼吸聲與汗水都清晰可見！";
+                    } else if (distance <= 11) {
+                        distComment = "<span class='level-tag' style='background:#FF4500;'>Lv.2 沉浸VIP</span> 6~11m：完美掌握五官細節與全身舞蹈張力。";
+                    } else if (distance <= 16) {
+                        distComment = "<span class='level-tag' style='background:#FF8C00;'>Lv.3 搖滾核心</span> 11~16m：不須任何裝備，輕鬆看清所有動作。";
+                    } else if (distance <= 21) {
+                        distComment = "<span class='level-tag' style='background:#DAA520;'>Lv.4 絕佳視野</span> 16~21m：全舞台燈光效果最佳的黃金觀賞圈。";
                     } else if (distance <= 25) {
-                        distComment = "👀 <b>距離評估：</b>視野極佳！能清楚看見全身動作，手機錄影也清晰。";
-                    } else if (distance <= 35) {
-                        distComment = "📷 <b>距離評估：</b>距離適中！建議帶望遠鏡看特寫，或用旗艦手機變焦。";
+                        distComment = "<span class='level-tag' style='background:#32CD32;'>Lv.5 變焦起步</span> 21~25m：看整體極佳，想拍特寫建議手機放大 2-3 倍。";
+                    } else if (distance <= 29) {
+                        distComment = "<span class='level-tag' style='background:#008080;'>Lv.6 望遠預備</span> 25~29m：五官開始模糊，建議攜帶輕量型雙筒望遠鏡。";
+                    } else if (distance <= 33) {
+                        distComment = "<span class='level-tag' style='background:#4169E1;'>Lv.7 裝備常駐</span> 29~33m：建議租借望遠鏡，或使用旗艦神機放大拍攝。";
+                    } else if (distance <= 37) {
+                        distComment = "<span class='level-tag' style='background:#8A2BE2;'>Lv.8 仰賴螢幕</span> 33~37m：距離偏遠，觀賞主舞台需高度仰賴兩側轉播大螢幕。";
+                    } else if (distance <= 41) {
+                        distComment = "<span class='level-tag' style='background:#800080;'>Lv.9 大砲戰區</span> 37~41m：肉眼只剩螞蟻大小，大砲鏡頭與高級望遠鏡必備。";
                     } else {
-                        distComment = "🔭 <b>距離評估：</b>偏後方或邊疆側！大砲鏡頭、望遠鏡、旗艦神機必備。";
+                        distComment = "<span class='level-tag' style='background:#444444;'>Lv.10 氣氛組</span> 41m以上：徹底退居二線，主打享受現場超殺音響與大合唱氛圍。";
                     }
                     
-                    // 判斷該座位是否在「主舞台」的正前方範圍內
-                    let isMainStage = (layout === 'decreasing' && s >= 43 && s <= 66) || 
+                    // ==========================================
+                    // 📐 AI 角度評價 10 大級距 (含主舞台防誤判機制)
+                    // ==========================================
+                    let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || 
                                       (layout === '10x10' && s >= 40 && s <= 69);
                     
-                    // --- 角度評價 (視角舒適度) ---
                     let angleComment = "";
-                    if (isMainStage) {
-                        // 主舞台範圍內特權判定
-                        if (angle <= 20) {
-                            angleComment = "👑 <b>視角舒適度：</b>正C位神角 (完全正對中心，最頂視角)";
-                        } else {
-                            angleComment = "🤩 <b>視角舒適度：</b>主舞台前方 (雖不在正中，但正對主舞台，神仙位！)";
-                        }
+                    if (isMainStage && angle <= 7) {
+                        angleComment = "<span class='level-tag' style='background:#FF0000;'>Tier 1 絕對正中</span> (0~7度)：帝王視角！完美對稱，無死角的絕對C位。";
+                    } else if (isMainStage && angle <= 15) {
+                        angleComment = "<span class='level-tag' style='background:#FF4500;'>Tier 2 完美正視</span> (7~15度)：極微小偏角，完全不需轉頭，神仙體驗。";
+                    } else if (isMainStage) {
+                        angleComment = "<span class='level-tag' style='background:#FF8C00;'>Tier 3 對齊舞台</span> (15度+)：雖有斜角，但正前方無遮蔽物，保證神位。";
                     } else {
-                        // 非主舞台範圍嚴格判定
-                        if (angle <= 20) {
-                            angleComment = "👑 <b>視角舒適度：</b>完美正視角 (幾乎正對舞台，脖子超輕鬆)";
-                        } else if (angle <= 35) {
-                            angleComment = "👀 <b>視角舒適度：</b>舒適微側 (視野自然，稍轉頭即可)";
-                        } else if (angle <= 50) {
-                            angleComment = "📐 <b>視角舒適度：</b>偏斜視角 (斜角稍大，可能會有部分死角)";
+                        if (angle <= 15) {
+                            angleComment = "<span class='level-tag' style='background:#DAA520;'>Tier 4 輕鬆微側</span> (0~15度)：視角舒適，只要輕微轉頭即可流暢觀影。";
+                        } else if (angle <= 23) {
+                            angleComment = "<span class='level-tag' style='background:#32CD32;'>Tier 5 前側視角</span> (15~23度)：略帶側邊感，但通常擁有極近的觀影距離。";
+                        } else if (angle <= 31) {
+                            angleComment = "<span class='level-tag' style='background:#008080;'>Tier 6 明顯側角</span> (23~31度)：稍微斜看，視野一半會開始依賴兩側轉播。";
+                        } else if (angle <= 39) {
+                            angleComment = "<span class='level-tag' style='background:#4169E1;'>Tier 7 偏斜警報</span> (31~39度)：斜度偏大，邊緣視線可能被音響或鷹架干擾。";
+                        } else if (angle <= 47) {
+                            angleComment = "<span class='level-tag' style='background:#8A2BE2;'>Tier 8 側翼邊疆</span> (39~47度)：脖子容易痠痛，整場演唱會多半在看轉播螢幕。";
+                        } else if (angle <= 55) {
+                            angleComment = "<span class='level-tag' style='background:#800080;'>Tier 9 極度側斜</span> (47~55度)：幾乎是在看音響塔與舞台側面，強烈死角感。";
                         } else {
-                            angleComment = "⚠️ <b>視角舒適度：</b>極斜邊疆 (非常側邊，看轉播大螢幕機率高)";
+                            angleComment = "<span class='level-tag' style='background:#444444;'>Tier 10 面壁思過</span> (55度+)：極限邊疆，夾縫中求生存，能聽到聲音最重要。";
                         }
                     }
 
                     // 顯示最終測距與視角結果
                     resultBox.innerHTML = `
                         📍 座位：<span style="color:#fff;">第 ${r} 排，第 ${s} 號</span><br>
-                        📏 直線距離：<span class="highlight-text">${distance.toFixed(1)} 公尺</span><br>
+                        📏 預估距離：<span class="highlight-text">${distance.toFixed(1)} 公尺</span><br>
                         📐 舞台偏角：<span class="highlight-text">${angle.toFixed(1)} 度</span><br>
-                        <hr style="border-color: #333; margin: 10px 0;">
-                        💡 <b>AI 專業觀影建議：</b><br>
+                        <hr style="border-color: #444; margin: 12px 0;">
+                        <span style="color: #FFD700; font-weight:bold; font-size: 16px;">💡 AI 戰力分析：</span><br>
                         <span class="advice-item">${distComment}</span>
                         <span class="advice-item">${angleComment}</span>
                     `;
