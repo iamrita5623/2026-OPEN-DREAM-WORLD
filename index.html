@@ -14,10 +14,11 @@
         button:hover { background-color: #45a049; }
         
         /* 測距儀結果顯示框 */
-        #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 15px; color: #00FF00; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 550px; margin-left: auto; margin-right: auto; }
-        .highlight-text { color: #FFD700; font-weight: bold; font-size: 18px; }
-        .advice-item { display: block; margin-top: 8px; padding-left: 5px; color: #ddd; }
-        .level-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #333; color: #fff; font-size: 13px; margin-right: 5px; font-weight: bold; }
+        #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 15px; color: #fff; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 550px; margin-left: auto; margin-right: auto; }
+        .highlight-text { color: #00FF00; font-weight: bold; font-size: 18px; }
+        .advice-item { display: block; margin-top: 6px; padding-left: 5px; color: #ddd; }
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #333; color: #fff; font-size: 13px; margin-right: 5px; font-weight: bold; }
+        .final-rank { display: block; text-align: center; font-size: 22px; font-weight: bold; margin: 15px 0 10px 0; padding: 10px; border-radius: 6px; }
         
         .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -36,7 +37,6 @@
         .zone-new { background-color: #ffb3ba; color: #000; } 
         .zone-gray { background-color: #444444; color: #999; } 
         
-        /* 搜尋特效 */
         .highlight { box-shadow: 0 0 15px 5px #00FF00; border: 2px solid #00FF00; transform: scale(1.3); z-index: 10; animation: pulse 1s infinite alternate; background-color: #00FF00; color: #000; font-weight: bold; }
         
         @keyframes pulse {
@@ -51,19 +51,18 @@
         <h2>
             夢想音樂節 - <span style="color: #FF4C4C;">超級搖滾區 (1~24排)</span> 座位查詢
             <div style="font-size: 15px; color: #f39c12; font-weight: normal; margin-top: 10px;">
-                (※ 本系統僅收錄 1~24 排。座位圖與測距儀僅供參考，實際排法請以現場為準)
+                (※ 僅收錄 1~24 排。座位圖與測距儀僅供參考，實際排法請以現場為準)
             </div>
         </h2>
         <div class="search-box">
             <select id="layoutSelect" onchange="buildMap()">
-                <option value="decreasing">1. 遞減排法 </option>
-                <option value="10x10">2. 10x10排法 </option>
+                <option value="decreasing">1. 遞減排法 (15-14-13-12)</option>
+                <option value="10x10">2. 10x10排法 (有中走道)</option>
             </select>
             <label>第 <input type="number" id="inputRow" min="1" max="24" placeholder="排"> 排</label>
             <label>第 <input type="number" id="inputSeat" min="1" max="108" placeholder="號"> 號</label>
             <button onclick="findSeat()">鎖定座位</button>
             
-            <!-- 距離結果顯示區 -->
             <div id="resultBox"></div>
         </div>
     </div>
@@ -75,9 +74,7 @@
     </div>
 
     <div class="map-container">
-        <div class="seat-map" id="seatMap">
-            <!-- JavaScript 會在這裡自動畫出座位 -->
-        </div>
+        <div class="seat-map" id="seatMap"></div>
     </div>
 
     <script>
@@ -119,22 +116,10 @@
 
             if (layout === 'decreasing') {
                 verticalAisles = [15, 29, 42, 66, 79, 93];
-                stageConfigs = [
-                    {type: 'empty', range: [1, 24]},
-                    {type: 'led', range: [25, 39]},
-                    {type: 'main', range: [40, 69]},
-                    {type: 'led', range: [70, 84]},
-                    {type: 'empty', range: [85, 108]}
-                ];
+                stageConfigs = [{type: 'empty', range: [1, 24]}, {type: 'led', range: [25, 39]}, {type: 'main', range: [40, 69]}, {type: 'led', range: [70, 84]}, {type: 'empty', range: [85, 108]}];
             } else {
                 verticalAisles = [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
-                stageConfigs = [
-                    {type: 'empty', range: [1, 24]},
-                    {type: 'led', range: [25, 39]},
-                    {type: 'main', range: [40, 69]},
-                    {type: 'led', range: [70, 84]},
-                    {type: 'empty', range: [85, 108]}
-                ];
+                stageConfigs = [{type: 'empty', range: [1, 24]}, {type: 'led', range: [25, 39]}, {type: 'main', range: [40, 69]}, {type: 'led', range: [70, 84]}, {type: 'empty', range: [85, 108]}];
             }
 
             let stageHtml = '<div class="row" style="margin-bottom: 25px; font-weight: bold; text-align: center; line-height: 30px; font-size: 14px;">';
@@ -165,13 +150,9 @@
 
                 for (let s = 1; s <= totalSeats; s++) {
                     let seatDiv = document.createElement('div');
-                    
                     let zoneClass = 'zone-default';
-                    if (s <= 14 || s >= 95) {
-                        zoneClass = 'zone-gray';
-                    } else if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) {
-                        zoneClass = 'zone-new';
-                    }
+                    if (s <= 14 || s >= 95) zoneClass = 'zone-gray';
+                    else if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) zoneClass = 'zone-new';
                     
                     seatDiv.className = `seat ${zoneClass}`;
                     seatDiv.id = `seat-${r}-${s}`;
@@ -203,100 +184,74 @@
 
                     let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
                     
-                    // Y軸距離 (深度)
                     let y = 3 + (r - 1) * 0.9;
                     if (r > 10) y += 2; 
                     if (r > 20) y += 2; 
 
-                    // X軸距離 (橫向偏差)
                     let x = 0;
                     if (s <= 54) {
-                        for (let i = s; i < 54; i++) {
-                            x += 0.5; 
-                            if (v_aisles.includes(i)) x += 1.0; 
-                        }
+                        for (let i = s; i < 54; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
                         x += 0.25; 
                     } else if (s >= 55) {
-                        for (let i = 55; i < s; i++) {
-                            x += 0.5;
-                            if (v_aisles.includes(i)) x += 1.0;
-                        }
+                        for (let i = 55; i < s; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
                         x += 0.25;
                     }
                     if (s !== 54 && s !== 55) x += 1.0; 
 
-                    // 1. 計算直線距離 (畢氏定理)
                     let distance = Math.sqrt(x*x + y*y);
-                    
-                    // 2. 計算偏斜視角 (三角函數 arctan)
                     let angle = Math.atan(x / y) * (180 / Math.PI);
                     
                     // ==========================================
-                    // 📏 AI 距離評價 10 大級距
+                    // 1. 純客觀距離評估 (不加任何讚美)
                     // ==========================================
+                    let distScore = 1;
                     let distComment = "";
-                    if (distance <= 6) {
-                        distComment = "<span class='level-tag' style='background:#FF0000;'>Lv.1 貼臉神位</span> 0~6m：肉眼連偶像的呼吸聲與汗水都清晰可見！";
-                    } else if (distance <= 11) {
-                        distComment = "<span class='level-tag' style='background:#FF4500;'>Lv.2 沉浸VIP</span> 6~11m：完美掌握五官細節與全身舞蹈張力。";
-                    } else if (distance <= 16) {
-                        distComment = "<span class='level-tag' style='background:#FF8C00;'>Lv.3 搖滾核心</span> 11~16m：不須任何裝備，輕鬆看清所有動作。";
-                    } else if (distance <= 21) {
-                        distComment = "<span class='level-tag' style='background:#DAA520;'>Lv.4 絕佳視野</span> 16~21m：全舞台燈光效果最佳的黃金觀賞圈。";
-                    } else if (distance <= 25) {
-                        distComment = "<span class='level-tag' style='background:#32CD32;'>Lv.5 變焦起步</span> 21~25m：看整體極佳，想拍特寫建議手機放大 2-3 倍。";
-                    } else if (distance <= 29) {
-                        distComment = "<span class='level-tag' style='background:#008080;'>Lv.6 望遠預備</span> 25~29m：五官開始模糊，建議攜帶輕量型雙筒望遠鏡。";
-                    } else if (distance <= 33) {
-                        distComment = "<span class='level-tag' style='background:#4169E1;'>Lv.7 裝備常駐</span> 29~33m：建議租借望遠鏡，或使用旗艦神機放大拍攝。";
-                    } else if (distance <= 37) {
-                        distComment = "<span class='level-tag' style='background:#8A2BE2;'>Lv.8 仰賴螢幕</span> 33~37m：距離偏遠，觀賞主舞台需高度仰賴兩側轉播大螢幕。";
-                    } else if (distance <= 41) {
-                        distComment = "<span class='level-tag' style='background:#800080;'>Lv.9 大砲戰區</span> 37~41m：肉眼只剩螞蟻大小，大砲鏡頭與高級望遠鏡必備。";
-                    } else {
-                        distComment = "<span class='level-tag' style='background:#444444;'>Lv.10 氣氛組</span> 41m以上：徹底退居二線，主打享受現場超殺音響與大合唱氛圍。";
-                    }
-                    
+                    if (distance <= 6) { distScore=1; distComment = "肉眼可清晰辨識五官細節與表情，免用望遠鏡。"; }
+                    else if (distance <= 12) { distScore=2; distComment = "可輕鬆看清全身舞蹈動作，手機錄影清晰。"; }
+                    else if (distance <= 20) { distScore=3; distComment = "舞台整體感佳，若要拍特寫建議手機變焦放大。"; }
+                    else if (distance <= 30) { distScore=4; distComment = "人物稍小，建議攜帶輕型雙筒望遠鏡輔助。"; }
+                    else { distScore=5; distComment = "距離偏遠，觀影需高度仰賴大螢幕，需備高階望遠鏡。"; }
+
                     // ==========================================
-                    // 📐 AI 角度評價 10 大級距 (含主舞台防誤判機制)
+                    // 2. 純客觀角度評估 (含主舞台防誤判)
                     // ==========================================
-                    let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || 
-                                      (layout === '10x10' && s >= 40 && s <= 69);
-                    
+                    let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || (layout === '10x10' && s >= 40 && s <= 69);
+                    let angleScore = 1;
                     let angleComment = "";
-                    if (isMainStage && angle <= 7) {
-                        angleComment = "<span class='level-tag' style='background:#FF0000;'>Tier 1 絕對正中</span> (0~7度)：帝王視角！完美對稱，無死角的絕對C位。";
-                    } else if (isMainStage && angle <= 15) {
-                        angleComment = "<span class='level-tag' style='background:#FF4500;'>Tier 2 完美正視</span> (7~15度)：極微小偏角，完全不需轉頭，神仙體驗。";
-                    } else if (isMainStage) {
-                        angleComment = "<span class='level-tag' style='background:#FF8C00;'>Tier 3 對齊舞台</span> (15度+)：雖有斜角，但正前方無遮蔽物，保證神位。";
-                    } else {
-                        if (angle <= 15) {
-                            angleComment = "<span class='level-tag' style='background:#DAA520;'>Tier 4 輕鬆微側</span> (0~15度)：視角舒適，只要輕微轉頭即可流暢觀影。";
-                        } else if (angle <= 23) {
-                            angleComment = "<span class='level-tag' style='background:#32CD32;'>Tier 5 前側視角</span> (15~23度)：略帶側邊感，但通常擁有極近的觀影距離。";
-                        } else if (angle <= 31) {
-                            angleComment = "<span class='level-tag' style='background:#008080;'>Tier 6 明顯側角</span> (23~31度)：稍微斜看，視野一半會開始依賴兩側轉播。";
-                        } else if (angle <= 39) {
-                            angleComment = "<span class='level-tag' style='background:#4169E1;'>Tier 7 偏斜警報</span> (31~39度)：斜度偏大，邊緣視線可能被音響或鷹架干擾。";
-                        } else if (angle <= 47) {
-                            angleComment = "<span class='level-tag' style='background:#8A2BE2;'>Tier 8 側翼邊疆</span> (39~47度)：脖子容易痠痛，整場演唱會多半在看轉播螢幕。";
-                        } else if (angle <= 55) {
-                            angleComment = "<span class='level-tag' style='background:#800080;'>Tier 9 極度側斜</span> (47~55度)：幾乎是在看音響塔與舞台側面，強烈死角感。";
-                        } else {
-                            angleComment = "<span class='level-tag' style='background:#444444;'>Tier 10 面壁思過</span> (55度+)：極限邊疆，夾縫中求生存，能聽到聲音最重要。";
-                        }
+                    
+                    if (isMainStage && angle <= 15) { angleScore=1; angleComment = "正對主舞台核心，無需轉頭。"; }
+                    else if (isMainStage) { angleScore=2; angleComment = "位於主舞台前方範圍內，視角自然不吃力。"; }
+                    else {
+                        if (angle <= 20) { angleScore=2; angleComment = "稍有偏角，輕微轉頭即可觀影。"; }
+                        else if (angle <= 35) { angleScore=3; angleComment = "中度斜視角，需轉身，部分視野可能受兩側硬體干擾。"; }
+                        else if (angle <= 45) { angleScore=4; angleComment = "斜度明顯，面臨舞台側面，死角機率高。"; }
+                        else { angleScore=5; angleComment = "極限側偏，嚴重死角，多數時間僅能觀看轉播大螢幕。"; }
                     }
 
-                    // 顯示最終測距與視角結果
+                    // ==========================================
+                    // 3. 綜合判定【木桶效應】 (取最差的分數作為最終評價)
+                    // ==========================================
+                    let finalScore = Math.max(distScore, angleScore);
+                    let rankHtml = "";
+                    
+                    if (finalScore === 1) {
+                        rankHtml = "<div class='final-rank' style='background:#FFD700; color:#000;'>🏆 綜合評價：SSS級【天選神位】<br><span style='font-size:13px; font-weight:normal;'>距離與視角皆完美無瑕，請保護好你的票！</span></div>";
+                    } else if (finalScore === 2) {
+                        rankHtml = "<div class='final-rank' style='background:#FF4500; color:#fff;'>✨ 綜合評價：SS級【頂級體驗】<br><span style='font-size:13px; font-weight:normal;'>黃金觀賞圈，極佳的沉浸感與視野。</span></div>";
+                    } else if (finalScore === 3) {
+                        rankHtml = "<div class='final-rank' style='background:#1E90FF; color:#fff;'>🔥 綜合評價：S級【優質好位】<br><span style='font-size:13px; font-weight:normal;'>微遠或微偏，但無損整體優秀的觀看品質。</span></div>";
+                    } else if (finalScore === 4) {
+                        rankHtml = "<div class='final-rank' style='background:#8A2BE2; color:#fff;'>👍 綜合評價：A級【裝備出動】<br><span style='font-size:13px; font-weight:normal;'>遇上明顯偏角或距離限制，強烈建議攜帶望遠鏡彌補。</span></div>";
+                    } else {
+                        rankHtml = "<div class='final-rank' style='background:#444444; color:#fff;'>⚠️ 綜合評價：B級【極限氣氛組】<br><span style='font-size:13px; font-weight:normal;'>受制於極斜死角或過遠距離，主打享受現場音響氛圍。</span></div>";
+                    }
+
                     resultBox.innerHTML = `
-                        📍 座位：<span style="color:#fff;">第 ${r} 排，第 ${s} 號</span><br>
-                        📏 預估距離：<span class="highlight-text">${distance.toFixed(1)} 公尺</span><br>
-                        📐 舞台偏角：<span class="highlight-text">${angle.toFixed(1)} 度</span><br>
-                        <hr style="border-color: #444; margin: 12px 0;">
-                        <span style="color: #FFD700; font-weight:bold; font-size: 16px;">💡 AI 戰力分析：</span><br>
-                        <span class="advice-item">${distComment}</span>
-                        <span class="advice-item">${angleComment}</span>
+                        <div style="font-size: 16px; margin-bottom: 10px;">📍 您的座位：<span style="color:#FFD700; font-weight:bold;">第 ${r} 排，第 ${s} 號</span></div>
+                        ${rankHtml}
+                        <hr style="border-color: #333; margin: 12px 0;">
+                        <span class="advice-item"><span class="tag">距離 ${distance.toFixed(1)}m</span> ${distComment}</span>
+                        <span class="advice-item"><span class="tag">偏角 ${angle.toFixed(1)}°</span> ${angleComment}</span>
                     `;
                     resultBox.style.display = 'block';
 
