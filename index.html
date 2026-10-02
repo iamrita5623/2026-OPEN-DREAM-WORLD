@@ -229,10 +229,21 @@
                     
                     // 2. 計算偏斜視角 (三角函數 arctan)
                     let angle = Math.atan(x / y) * (180 / Math.PI);
+
+                    // --- 距離評價 (裝備建議) ---補回這段！
+                    let distComment = "";
+                    if (distance <= 15) {
+                        distComment = "🔥 <b>距離評估：</b>神仙距離！肉眼直視毫無壓力，連汗珠都看得到。";
+                    } else if (distance <= 25) {
+                        distComment = "👀 <b>距離評估：</b>視野極佳！能清楚看見全身動作，手機錄影也清晰。";
+                    } else if (distance <= 35) {
+                        distComment = "📷 <b>距離評估：</b>距離適中！建議帶雙筒望遠鏡看特寫，或用旗艦手機變焦。";
+                    } else {
+                        distComment = "🔭 <b>距離評估：</b>偏後方或邊疆側！大砲鏡頭、望遠鏡、旗艦神機必備。";
+                    }
                     
                     // 判斷該座位是否在「主舞台」的正前方範圍內
-                    let isMainStage = (layout === 'decreasing' && s >= 43 && s <= 66) || 
-                                      (layout === '10x10' && s >= 40 && s <= 69);
+                    let isMainStage = (layout === 'decreasing' && s >= 43 && s <= 66) ||
                     
                     // --- 角度評價 (視角舒適度) ---
                     let angleComment = "";
