@@ -16,7 +16,6 @@
         /* 測距儀結果顯示框 */
         #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 16px; color: #00FF00; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
         .highlight-text { color: #FFD700; font-weight: bold; font-size: 18px; }
-        .advice-item { display: block; margin-top: 8px; padding-left: 5px; color: #fff; }
         
         .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -48,15 +47,15 @@
 
     <div class="header">
         <h2>
-            夢想音樂節 - <span style="color: #FF4C4C;">超級搖滾區 (1~24排)</span> 座位查詢
+            夢想音樂節 - <span style="color: #FF4C4C;">超級搖滾區 (1~24排)</span> 實境雷達
             <div style="font-size: 15px; color: #f39c12; font-weight: normal; margin-top: 10px;">
-                (※ 僅收錄 1~24 排。座位圖與測距儀僅供參考，實際排法請以現場為準)
+                (※ 本系統僅收錄 1~24 排。座位圖與測距儀僅供參考，實際排法請以現場為準)
             </div>
         </h2>
         <div class="search-box">
             <select id="layoutSelect" onchange="buildMap()">
-                <option value="decreasing">1. 遞減排法 </option>
-                <option value="10x10">2. 10x10排法 </option>
+                <option value="decreasing">1. 遞減排法 (15-14-13-12)</option>
+                <option value="10x10">2. 10x10排法 (有中走道)</option>
             </select>
             <label>第 <input type="number" id="inputRow" min="1" max="24" placeholder="排"> 排</label>
             <label>第 <input type="number" id="inputSeat" min="1" max="108" placeholder="號"> 號</label>
@@ -68,9 +67,9 @@
     </div>
 
     <div class="legend">
-        <div class="legend-item"><div class="color-box" style="background-color: #e0e0e0;"></div>共同開賣區域 (21~88)</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #e0e0e0;"></div>首波開賣核心區 (21~88)</div>
         <div class="legend-item"><div class="color-box" style="background-color: #ffb3ba;"></div>12/4 加開區域 (15~20, 89~94)</div>
-        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域 (1~14, 95~108)</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售邊疆區 (1~14, 95~108)</div>
     </div>
 
     <div class="map-container">
@@ -228,44 +227,19 @@
                     let distance = Math.sqrt(x*x + y*y);
                     
                     // 2. 計算偏斜視角 (三角函數 arctan)
+                    // 將弧度轉為角度 (0度代表正中心，角度越大越斜)
                     let angle = Math.atan(x / y) * (180 / Math.PI);
-
-                    // --- 距離評價 (裝備建議) ---補回這段！
-                    let distComment = "";
-                    if (distance <= 15) {
-                        distComment = "🔥 <b>距離評估：</b>神仙距離！肉眼直視毫無壓力，連汗珠都看得到。";
-                    } else if (distance <= 25) {
-                        distComment = "👀 <b>距離評估：</b>視野極佳！能清楚看見全身動作，手機錄影也清晰。";
-                    } else if (distance <= 35) {
-                        distComment = "📷 <b>距離評估：</b>距離適中！建議帶雙筒望遠鏡看特寫，或用旗艦手機變焦。";
-                    } else {
-                        distComment = "🔭 <b>距離評估：</b>偏後方或邊疆側！大砲鏡頭、望遠鏡、旗艦神機必備。";
-                    }
                     
-                    // 判斷該座位是否在「主舞台」的正前方範圍內
-                    let isMainStage = (layout === 'decreasing' && s >= 43 && s <= 66) ||
-                    
-                    // --- 角度評價 (視角舒適度) ---
+                    // --- 給予角度與距離的綜合評價 ---
                     let angleComment = "";
-                    
-                    if (isMainStage) {
-                        // 【主舞台範圍內】特權判定
-                        if (angle <= 20) {
-                            angleComment = "👑 <b>視角舒適度：</b>正C位神角 (完全正對中心，最頂視角)";
-                        } else {
-                            angleComment = "🤩 <b>視角舒適度：</b>主舞台前方 (雖不在正中，但正對主舞台，神仙位！)";
-                        }
+                    if (angle <= 15) {
+                        angleComment = "👑 完美正視角 (幾乎正對舞台，脖子超輕鬆)";
+                    } else if (angle <= 30) {
+                        angleComment = "👀 微側視角 (視野自然，稍轉頭即可)";
+                    } else if (angle <= 45) {
+                        angleComment = "📐 偏斜視角 (斜角稍大，可能會有部分音響死角)";
                     } else {
-                        // 【非主舞台範圍】嚴格判定偏角
-                        if (angle <= 20) {
-                            angleComment = "👑 <b>視角舒適度：</b>完美正視角 (幾乎正對舞台，脖子超輕鬆)";
-                        } else if (angle <= 35) {
-                            angleComment = "👀 <b>視角舒適度：</b>舒適微側 (視野自然，稍轉頭即可)";
-                        } else if (angle <= 50) {
-                            angleComment = "📐 <b>視角舒適度：</b>偏斜視角 (斜角稍大，可能會有部分音響死角)";
-                        } else {
-                            angleComment = "⚠️ <b>視角舒適度：</b>極斜邊疆 (非常側邊，看轉播大螢幕機率高)";
-                        }
+                        angleComment = "⚠️ 極斜邊疆 (非常側邊，看轉播大螢幕的機率較高)";
                     }
 
                     // 顯示最終測距與視角結果
@@ -274,9 +248,8 @@
                         📏 直線距離：<span class="highlight-text">${distance.toFixed(1)} 公尺</span><br>
                         📐 舞台偏角：<span class="highlight-text">${angle.toFixed(1)} 度</span><br>
                         <hr style="border-color: #333; margin: 10px 0;">
-                        💡 <b>AI 專業觀影建議：</b><br>
-                        <span class="advice-item">${distComment}</span>
-                        <span class="advice-item">${angleComment}</span>
+                        💡 <b>AI 綜合視角評估：</b><br>
+                        <span style="color: #fff;">${angleComment}</span>
                     `;
                     resultBox.style.display = 'block';
 
