@@ -7,22 +7,34 @@
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; text-align: center; }
         .header { margin-bottom: 20px; }
-        .search-box { background: #2a2a2a; padding: 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        select { padding: 8px; font-size: 16px; margin-right: 15px; border-radius: 4px; background: #fff; border: 1px solid #444; font-weight: bold; }
-        input { padding: 8px; font-size: 16px; width: 60px; margin: 0 10px; border: 1px solid #444; border-radius: 4px; background: #fff; text-align: center; }
-        button { padding: 8px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .search-box { background: #2a2a2a; padding: 20px; border-radius: 8px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        select { padding: 8px; font-size: 16px; margin-bottom: 15px; border-radius: 4px; background: #fff; border: 1px solid #444; font-weight: bold; width: 100%; max-width: 300px; }
+        
+        .compare-toggle { margin-bottom: 15px; font-size: 16px; font-weight: bold; cursor: pointer; display: inline-block; background: #333; padding: 8px 15px; border-radius: 6px; }
+        .compare-toggle:hover { background: #444; }
+        .compare-toggle input { width: 18px; height: 18px; margin-right: 8px; vertical-align: middle; cursor: pointer; }
+
+        .input-group { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .seat-box { padding: 10px 15px; border-radius: 6px; font-weight: bold; }
+        .seat-one { background: rgba(0, 191, 255, 0.1); border: 1px solid #00BFFF; color: #00BFFF; }
+        .seat-two { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
+        
+        input[type="number"] { padding: 6px; font-size: 16px; width: 55px; margin: 0 5px; border: 1px solid #444; border-radius: 4px; background: #fff; text-align: center; color: #000; }
+        button { padding: 10px 30px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; letter-spacing: 1px; }
         button:hover { background-color: #45a049; }
         
-        /* 測距儀結果顯示框 */
-        #resultBox { display: none; margin-top: 15px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 15px; color: #fff; border: 1px solid #00FF00; line-height: 1.8; text-align: left; max-width: 550px; margin-left: auto; margin-right: auto; }
-        .highlight-text { color: #00FF00; font-weight: bold; font-size: 17px; }
-        .advice-item { display: block; margin-top: 6px; padding-left: 5px; color: #ddd; }
-        .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #333; color: #fff; font-size: 12px; margin-right: 5px; font-weight: bold; }
+        /* 結果顯示區 */
+        #resultBox { display: none; margin-top: 20px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 14px; color: #fff; line-height: 1.6; text-align: center; max-width: 700px; margin-left: auto; margin-right: auto; }
         
-        .final-rank { display: block; text-align: center; font-size: 16px; font-weight: bold; margin: 5px 0 10px 0; padding: 8px; border-radius: 6px; letter-spacing: 0.5px; }
+        .compare-container { display: flex; justify-content: center; gap: 15px; text-align: left; margin-top: 10px; flex-wrap: wrap; }
+        .result-card { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; background: #2a2a2a; }
+        .card-one { border-top: 4px solid #00BFFF; box-shadow: 0 4px 10px rgba(0,191,255,0.1); }
+        .card-two { border-top: 4px solid #FFA500; box-shadow: 0 4px 10px rgba(255,165,0,0.1); }
         
-        /* 100分制分數條特效 */
-        .score-display { text-align: center; font-size: 26px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .score-display { text-align: center; font-size: 24px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+        .final-rank { display: block; text-align: center; font-size: 15px; font-weight: bold; margin: 5px 0 10px 0; padding: 6px; border-radius: 6px; }
+        .advice-item { display: block; margin-top: 6px; padding-left: 5px; color: #ddd; font-size: 13px; }
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #111; color: #fff; font-size: 11px; margin-right: 5px; font-weight: bold; }
         
         .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -30,22 +42,17 @@
         
         .map-container { overflow-x: auto; padding-bottom: 20px; white-space: nowrap; text-align: left; display: inline-block; }
         .seat-map { display: inline-block; background: #1e1e1e; padding: 20px; border-radius: 8px; }
-        
         .row { display: flex; margin-bottom: 4px; }
         .row-label { width: 50px; text-align: right; margin-right: 15px; font-size: 12px; line-height: 20px; color: #aaa; flex-shrink: 0; }
-        
         .seat { width: 20px; height: 20px; border-radius: 4px; font-size: 9px; line-height: 20px; text-align: center; cursor: pointer; position: relative; box-sizing: border-box; }
         
         .zone-default { background-color: #e0e0e0; color: #000; }
         .zone-new { background-color: #ffb3ba; color: #000; } 
         .zone-gray { background-color: #444444; color: #999; } 
         
-        .highlight { box-shadow: 0 0 15px 5px #00FF00; border: 2px solid #00FF00; transform: scale(1.3); z-index: 10; animation: pulse 1s infinite alternate; background-color: #00FF00; color: #000; font-weight: bold; }
-        
-        @keyframes pulse {
-            from { box-shadow: 0 0 10px #00FF00; }
-            to { box-shadow: 0 0 20px 10px #00FF00; }
-        }
+        /* 地圖高亮特效 */
+        .highlight-one { box-shadow: 0 0 15px 5px #00BFFF; border: 2px solid #00BFFF; transform: scale(1.3); z-index: 10; background-color: #00BFFF; color: #000; font-weight: bold; }
+        .highlight-two { box-shadow: 0 0 15px 5px #FFA500; border: 2px solid #FFA500; transform: scale(1.3); z-index: 10; background-color: #FFA500; color: #000; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -62,9 +69,23 @@
                 <option value="decreasing">1. 遞減排法 </option>
                 <option value="10x10">2. 10x10排法 </option>
             </select>
-            <label>第 <input type="number" id="inputRow" min="1" max="24" placeholder="排"> 排</label>
-            <label>第 <input type="number" id="inputSeat" min="1" max="108" placeholder="號"> 號</label>
-            <button onclick="findSeat()">鎖定座位</button>
+            
+            <br>
+            <label class="compare-toggle">
+                <input type="checkbox" id="compareCheckbox" onchange="toggleCompare()"> 比較兩個座位
+            </label>
+            
+            <div class="input-group">
+                <div class="seat-box seat-one">
+                    🟦 座位 1：第 <input type="number" id="rowA" min="1" max="24"> 排 <input type="number" id="seatA" min="1" max="108"> 號
+                </div>
+                <!-- 預設隱藏，打勾後才會顯示 -->
+                <div class="seat-box seat-two" id="compareBox" style="display: none;">
+                    🟧 座位 2：第 <input type="number" id="rowB" min="1" max="24"> 排 <input type="number" id="seatB" min="1" max="108"> 號
+                </div>
+            </div>
+            
+            <button onclick="analyzeSeats()">分析座位</button>
             
             <div id="resultBox"></div>
         </div>
@@ -86,16 +107,18 @@
         const horizontalAisles = [10, 20];
         const centerAisle = 54;
 
+        // 控制「比較座位」輸入框的顯示與隱藏
+        function toggleCompare() {
+            const isChecked = document.getElementById('compareCheckbox').checked;
+            document.getElementById('compareBox').style.display = isChecked ? 'block' : 'none';
+        }
+
         function getBlockWidth(start, end, aisles) {
             if (start > end) return 0;
             let width = 0;
             for(let i=start; i<=end; i++) {
                 width += 20;
-                if (i !== end) {
-                    width += 2;
-                    if (i === centerAisle) width += 30;
-                    else if (aisles.includes(i)) width += 15;
-                }
+                if (i !== end) { width += 2; if (i === centerAisle) width += 30; else if (aisles.includes(i)) width += 15; }
             }
             return width;
         }
@@ -155,133 +178,173 @@
             }
         }
 
-        function findSeat() {
-            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+        function getSeatStats(r, s, layout) {
+            let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
+            let y = 3 + (r - 1) * 0.9;
+            if (r > 10) y += 2; 
+            if (r > 20) y += 2; 
+
+            let x = 0;
+            if (s <= 54) {
+                for (let i = s; i < 54; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
+                x += 0.25; 
+            } else if (s >= 55) {
+                for (let i = 55; i < s; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
+                x += 0.25;
+            }
+            if (s !== 54 && s !== 55) x += 1.0; 
+
+            let distance = Math.sqrt(x*x + y*y);
+            let angle = Math.atan(x / y) * (180 / Math.PI);
+            
+            let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || (layout === '10x10' && s >= 40 && s <= 69);
+            
+            let scoreDist = Math.max(0, 100 - (distance / 42) * 55); 
+            let scoreAngle = Math.max(0, 100 - (angle / 60) * 55);
+            if (isMainStage) scoreAngle = Math.min(100, scoreAngle + 12);
+            
+            let minScore = Math.min(scoreDist, scoreAngle);
+            let maxScore = Math.max(scoreDist, scoreAngle);
+            let final100 = Math.round((minScore * 0.7) + (maxScore * 0.3));
+            final100 = Math.min(100, Math.round(final100 * 1.05)); 
+            
+            let powerColor = "#00FF00";
+            if (final100 >= 90) powerColor = "#FFD700";
+            else if (final100 >= 80) powerColor = "#00FFFF";
+            else if (final100 >= 65) powerColor = "#32CD32";
+            else if (final100 >= 50) powerColor = "#FFA500";
+            else powerColor = "#FF4C4C";
+
+            let distScore = 1; let distComment = "";
+            if (distance <= 6) { distScore=1; distComment = "極致貼臉，連汗珠都清晰可見。"; }
+            else if (distance <= 10) { distScore=2; distComment = "沉浸感強，掌握五官微表情。"; }
+            else if (distance <= 14) { distScore=3; distComment = "黃金距離，輕鬆看清舞蹈張力。"; }
+            else if (distance <= 18) { distScore=4; distComment = "整體感佳，拍特寫稍需變焦。"; }
+            else if (distance <= 22) { distScore=5; distComment = "舒適，人物稍小，需2倍變焦。"; }
+            else if (distance <= 26) { distScore=6; distComment = "距離適中，可帶輕型望遠鏡。"; }
+            else if (distance <= 30) { distScore=7; distComment = "五官開始模糊，建議望遠鏡。"; }
+            else if (distance <= 34) { distScore=8; distComment = "中後段，需依賴大螢幕轉播。"; }
+            else if (distance <= 38) { distScore=9; distComment = "強烈建議攜帶大砲鏡頭輔助。"; }
+            else { distScore=10; distComment = "極遠，仰賴大螢幕與現場音響。"; }
+
+            let angleScore = 1; let angleComment = "";
+            if (isMainStage) {
+                if (angle <= 7) { angleScore=1; angleComment = "絕對C位，帝王正視角。"; }
+                else if (angle <= 15) { angleScore=2; angleComment = "正對主舞台，幾乎不需轉頭。"; }
+                else { angleScore=3; angleComment = "主舞台前方，視野流暢無遮擋。"; }
+            } else {
+                if (angle <= 12) { angleScore=4; angleComment = "微小偏角，視角極度舒適。"; }
+                else if (angle <= 20) { angleScore=5; angleComment = "輕微斜角，稍稍轉頭即可。"; }
+                else if (angle <= 28) { angleScore=6; angleComment = "中度偏角，不影響整體舞台。"; }
+                else if (angle <= 35) { angleScore=7; angleComment = "明顯斜視，需仰賴轉播螢幕。"; }
+                else if (angle <= 42) { angleScore=8; angleComment = "斜度大，面臨鷹架遮擋風險。"; }
+                else if (angle <= 50) { angleScore=9; angleComment = "嚴重側偏，僅能看見側面。"; }
+                else { angleScore=10; angleComment = "極限死角，強烈仰賴大螢幕。"; }
+            }
+
+            let finalScore = Math.max(distScore, angleScore);
+            let finalRank = ""; let rankColor = "";
+            if (finalScore === 1) { finalRank = "SSS 級【天選神位】"; rankColor = "#FFD700"; }
+            else if (finalScore === 2) { finalRank = "SS 級【完美沉浸】"; rankColor = "#FF8C00"; }
+            else if (finalScore === 3) { finalRank = "S+ 級【極佳視野】"; rankColor = "#FF4500"; }
+            else if (finalScore === 4) { finalRank = "S 級【優質好位】"; rankColor = "#1E90FF"; }
+            else if (finalScore === 5) { finalRank = "A+ 級【舒適觀影】"; rankColor = "#32CD32"; }
+            else if (finalScore === 6) { finalRank = "A 級【中規中矩】"; rankColor = "#008080"; }
+            else if (finalScore === 7) { finalRank = "B+ 級【輔助出動】"; rankColor = "#9370DB"; }
+            else if (finalScore === 8) { finalRank = "B 級【側翼戰區】"; rankColor = "#8A2BE2"; }
+            else if (finalScore === 9) { finalRank = "C 級【邊疆雷區】"; rankColor = "#A0522D"; }
+            else { finalRank = "D 級【極限氣氛組】"; rankColor = "#444444"; }
+
+            return {
+                r, s, distance, angle, final100, powerColor,
+                distComment, angleComment, finalRank, rankColor
+            };
+        }
+
+        function generateCardHtml(stats, colorClass, title) {
+            let titleColor = colorClass === 'card-one' ? '#00BFFF' : '#FFA500';
+            return `
+                <div class="result-card ${colorClass}">
+                    <div style="font-size: 16px; margin-bottom: 5px; color:#ccc;">${title}：<span style="color:${titleColor}; font-weight:bold; font-size:18px;">第 ${stats.r} 排, 第 ${stats.s} 號</span></div>
+                    
+                    <div class="score-display" style="color: ${stats.powerColor};">
+                        ✨ 推薦評分：${stats.final100} 分
+                    </div>
+                    
+                    <div class='final-rank' style='background:${stats.rankColor}; color:${stats.final100 >= 80 ? '#000' : '#fff'};'>
+                        綜合評級：${stats.finalRank}
+                    </div>
+                    
+                    <hr style="border-color: #444; margin: 12px 0;">
+                    <span class="advice-item"><span class="tag">距離 ${stats.distance.toFixed(1)}m</span> <span style="color:#fff;">${stats.distComment}</span></span>
+                    <span class="advice-item"><span class="tag">偏角 ${stats.angle.toFixed(1)}°</span> <span style="color:#fff;">${stats.angleComment}</span></span>
+                </div>
+            `;
+        }
+
+        function analyzeSeats() {
+            // 清除先前的高亮
+            document.querySelectorAll('.highlight-one, .highlight-two').forEach(el => {
+                el.classList.remove('highlight-one');
+                el.classList.remove('highlight-two');
+            });
             const resultBox = document.getElementById('resultBox');
             resultBox.style.display = 'none';
 
-            const rStr = document.getElementById('inputRow').value;
-            const sStr = document.getElementById('inputSeat').value;
+            const layout = document.getElementById('layoutSelect').value;
+            const isCompare = document.getElementById('compareCheckbox').checked;
             
-            if (rStr && sStr) {
-                const r = parseInt(rStr);
-                const s = parseInt(sStr);
-                const target = document.getElementById(`seat-${r}-${s}`);
-                const layout = document.getElementById('layoutSelect').value;
-                
-                if (target) {
-                    target.classList.add('highlight');
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            let r1 = document.getElementById('rowA').value;
+            let s1 = document.getElementById('seatA').value;
 
-                    let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
-                    let y = 3 + (r - 1) * 0.9;
-                    if (r > 10) y += 2; 
-                    if (r > 20) y += 2; 
-
-                    let x = 0;
-                    if (s <= 54) {
-                        for (let i = s; i < 54; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
-                        x += 0.25; 
-                    } else if (s >= 55) {
-                        for (let i = 55; i < s; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
-                        x += 0.25;
-                    }
-                    if (s !== 54 && s !== 55) x += 1.0; 
-
-                    let distance = Math.sqrt(x*x + y*y);
-                    let angle = Math.atan(x / y) * (180 / Math.PI);
-                    
-                    // ==========================================
-                    // 📐 百分制精算系統 (100分滿分)
-                    // ==========================================
-                    let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || (layout === '10x10' && s >= 40 && s <= 69);
-                    
-                    // 距離分數 (越近越高分，超過 40m 開始不及格)
-                    let scoreDist = Math.max(0, 100 - (distance / 42) * 55); 
-                    
-                    // 角度分數 (越斜越低分)
-                    let scoreAngle = Math.max(0, 100 - (angle / 60) * 55);
-                    if (isMainStage) scoreAngle = Math.min(100, scoreAngle + 12); // 主舞台特權加分
-                    
-                    // 綜合戰力指數 (木桶效應：70% 取決於最爛的指標，30% 取決於好的指標)
-                    let minScore = Math.min(scoreDist, scoreAngle);
-                    let maxScore = Math.max(scoreDist, scoreAngle);
-                    let final100 = Math.round((minScore * 0.7) + (maxScore * 0.3));
-                    // 稍微拉抬基礎分數，讓視覺感受更好
-                    final100 = Math.min(100, Math.round(final100 * 1.05)); 
-                    
-                    // 戰力顏色判定
-                    let powerColor = "#00FF00";
-                    if (final100 >= 90) powerColor = "#FFD700";
-                    else if (final100 >= 80) powerColor = "#00FFFF";
-                    else if (final100 >= 65) powerColor = "#32CD32";
-                    else if (final100 >= 50) powerColor = "#FFA500";
-                    else powerColor = "#FF4C4C";
-
-                    // ==========================================
-                    // 描述判定 (沿用 10 級距邏輯)
-                    // ==========================================
-                    let distScore = 1; let distComment = "";
-                    if (distance <= 6) { distScore=1; distComment = "極致貼臉，肉眼連表情汗珠都清晰可見。"; }
-                    else if (distance <= 10) { distScore=2; distComment = "沉浸感極強，完美掌握五官細節與微表情。"; }
-                    else if (distance <= 14) { distScore=3; distComment = "黃金觀賞距離，輕鬆看清全身舞蹈張力。"; }
-                    else if (distance <= 18) { distScore=4; distComment = "舞台整體感絕佳，拍特寫稍需依賴手機變焦。"; }
-                    else if (distance <= 22) { distScore=5; distComment = "視野舒適，但人物稍小，建議 2-3 倍手機變焦。"; }
-                    else if (distance <= 26) { distScore=6; distComment = "距離適中，可帶輕型雙筒望遠鏡輔助。"; }
-                    else if (distance <= 30) { distScore=7; distComment = "五官開始模糊，建議使用專業望遠鏡或旗艦手機。"; }
-                    else if (distance <= 34) { distScore=8; distComment = "中後段距離，需依賴高階設備或大螢幕轉播。"; }
-                    else if (distance <= 38) { distScore=9; distComment = "人物比例偏小，強烈建議攜帶大砲鏡頭輔助。"; }
-                    else { distScore=10; distComment = "距離極遠，基本仰賴轉播大螢幕與現場音響。"; }
-
-                    let angleScore = 1; let angleComment = "";
-                    if (isMainStage) {
-                        if (angle <= 7) { angleScore=1; angleComment = "絕對C位，完美對稱的帝王正視角。"; }
-                        else if (angle <= 15) { angleScore=2; angleComment = "正對主舞台，幾乎不需轉頭即可觀影。"; }
-                        else { angleScore=3; angleComment = "主舞台前方範圍，視野自然流暢無硬體遮擋。"; }
-                    } else {
-                        if (angle <= 12) { angleScore=4; angleComment = "微小偏角，視角極度舒適。"; }
-                        else if (angle <= 20) { angleScore=5; angleComment = "輕微斜角，稍稍轉頭即可完美觀賞。"; }
-                        else if (angle <= 28) { angleScore=6; angleComment = "中度偏角，略帶側面感但不影響整體舞台。"; }
-                        else if (angle <= 35) { angleScore=7; angleComment = "明顯斜視，開始需要仰賴兩側轉播螢幕。"; }
-                        else if (angle <= 42) { angleScore=8; angleComment = "斜度較大，視野面臨音響/鷹架遮擋風險。"; }
-                        else if (angle <= 50) { angleScore=9; angleComment = "嚴重側偏，多數時間僅能看見歌手側面。"; }
-                        else { angleScore=10; angleComment = "極限死角，幾乎面壁，強烈仰賴大螢幕轉播。"; }
-                    }
-
-                    let finalScore = Math.max(distScore, angleScore);
-                    let finalRank = ""; let rankColor = "";
-                    if (finalScore === 1) { finalRank = "SSS 級【天選神位】"; rankColor = "#FFD700"; }
-                    else if (finalScore === 2) { finalRank = "SS 級【完美沉浸】"; rankColor = "#FF8C00"; }
-                    else if (finalScore === 3) { finalRank = "S+ 級【極佳視野】"; rankColor = "#FF4500"; }
-                    else if (finalScore === 4) { finalRank = "S 級【優質好位】"; rankColor = "#1E90FF"; }
-                    else if (finalScore === 5) { finalRank = "A+ 級【舒適觀影】"; rankColor = "#32CD32"; }
-                    else if (finalScore === 6) { finalRank = "A 級【中規中矩】"; rankColor = "#008080"; }
-                    else if (finalScore === 7) { finalRank = "B+ 級【輔助出動】"; rankColor = "#9370DB"; }
-                    else if (finalScore === 8) { finalRank = "B 級【側翼戰區】"; rankColor = "#8A2BE2"; }
-                    else if (finalScore === 9) { finalRank = "C 級【邊疆雷區】"; rankColor = "#A0522D"; }
-                    else { finalRank = "D 級【極限氣氛組】"; rankColor = "#444444"; }
-
-                    resultBox.innerHTML = `
-                        <div style="font-size: 15px; margin-bottom: 5px; color:#ccc;">📍 您的座位：<span style="color:#fff; font-weight:bold;">第 ${r} 排，第 ${s} 號</span></div>
-                        
-                        <div class="score-display" style="color: ${powerColor};">
-                            ⚡ 綜合戰力：${final100} 分
-                        </div>
-                        
-                        <div class='final-rank' style='background:${rankColor}; color:${finalScore <= 1 ? '#000' : '#fff'};'>
-                            ${finalRank}
-                        </div>
-                        
-                        <hr style="border-color: #333; margin: 12px 0;">
-                        <span class="advice-item"><span class="tag">距離 ${distance.toFixed(1)}m</span> ${distComment}</span>
-                        <span class="advice-item"><span class="tag">偏角 ${angle.toFixed(1)}°</span> ${angleComment}</span>
-                    `;
-                    resultBox.style.display = 'block';
-
-                } else {
-                    alert("找不到該座位！請確認排數(1-24)與號碼(1-108)。");
-                }
+            if (!r1 || !s1) {
+                alert("請輸入「座位 1」的排數與號碼！");
+                return;
             }
+
+            let target1 = document.getElementById(`seat-${r1}-${s1}`);
+            if (!target1) { alert("找不到 座位 1！請確認範圍 (1-24排, 1-108號)。"); return; }
+            
+            target1.classList.add('highlight-one');
+            let stats1 = getSeatStats(parseInt(r1), parseInt(s1), layout);
+
+            // 如果沒有勾選比較模式
+            if (!isCompare) {
+                target1.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                resultBox.innerHTML = `<div class="compare-container" style="justify-content: center;">` + 
+                                      generateCardHtml(stats1, 'card-one', '🟦 查詢座位') + 
+                                      `</div>`;
+                resultBox.style.display = 'block';
+                return;
+            }
+
+            // 如果勾選了比較模式
+            let r2 = document.getElementById('rowB').value;
+            let s2 = document.getElementById('seatB').value;
+
+            if (!r2 || !s2) {
+                alert("您已啟用比較功能，請輸入「座位 2」的排數與號碼！");
+                return;
+            }
+
+            let target2 = document.getElementById(`seat-${r2}-${s2}`);
+            if (!target2) { alert("找不到 座位 2！請確認範圍 (1-24排, 1-108號)。"); return; }
+            
+            target2.classList.add('highlight-two');
+            let stats2 = getSeatStats(parseInt(r2), parseInt(s2), layout);
+
+            // 捲動至地圖置中
+            target1.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+            // 渲染並排卡片，去除輸贏字眼
+            resultBox.innerHTML = `
+                <div style="font-size:18px; font-weight:bold; color:#ccc; margin-bottom: 5px;">📊 座位分析比較</div>
+                <div class="compare-container">
+                    ${generateCardHtml(stats1, 'card-one', '🟦 座位 1')}
+                    ${generateCardHtml(stats2, 'card-two', '🟧 座位 2')}
+                </div>
+            `;
+            resultBox.style.display = 'block';
         }
 
         window.onload = buildMap;
