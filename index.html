@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夢想音樂節 - 專屬座位雷達查詢</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; text-align: center; }
+        .header { margin-bottom: 20px; }
+        .search-box { background: #2a2a2a; padding: 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        input { padding: 8px; font-size: 16px; width: 60px; margin: 0 10px; border: 1px solid #444; border-radius: 4px; background: #fff; text-align: center; }
+        button { padding: 8px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #45a049; }
+        
+        .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 16px; height: 16px; border-radius: 3px; }
+        
+        .map-container { overflow-x: auto; padding-bottom: 20px; white-space: nowrap; }
+        .seat-map { display: inline-block; background: #1e1e1e; padding: 20px; border-radius: 8px; }
+        
+        .row { display: flex; justify-content: center; margin-bottom: 4px; }
+        .row-label { width: 40px; text-align: right; margin-right: 15px; font-size: 12px; line-height: 20px; color: #aaa; }
+        
+        .seat { width: 20px; height: 20px; border-radius: 4px; margin-right: 2px; font-size: 9px; line-height: 20px; text-align: center; color: #000; cursor: pointer; position: relative; }
+        
+        /* Aisles */
+        .v-aisle { margin-right: 15px; }
+        .h-aisle { margin-bottom: 15px; }
+        .center-aisle { margin-right: 30px; }
+        
+        /* Colors based on zones */
+        .zone-red { background-color: #FF4C4C; } /* 54-55 正中央 */
+        .zone-orange { background-color: #FFA500; } /* 50-59 C位 */
+        .zone-yellow { background-color: #FFD700; } /* 43-66 主舞台 */
+        .zone-blue { background-color: #ADD8E6; } /* 30-42, 67-79 LED */
+        .zone-gray { background-color: #888888; color: #fff; } /* 1-29, 80-108 視線邊緣/未開賣 */
+        
+        /* Highlight specific seat */
+        .highlight { box-shadow: 0 0 15px 5px #00FF00; border: 2px solid #00FF00; transform: scale(1.3); z-index: 10; animation: pulse 1s infinite alternate; }
+        
+        @keyframes pulse {
+            from { box-shadow: 0 0 10px #00FF00; }
+            to { box-shadow: 0 0 20px 10px #00FF00; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>夢想音樂節 - 108席遞減排法 座位雷達</h2>
+        <div class="search-box">
+            <label>第 <input type="number" id="inputRow" min="1" max="24" placeholder="排"> 排</label>
+            <label>第 <input type="number" id="inputSeat" min="1" max="108" placeholder="號"> 號</label>
+            <button onclick="findSeat()">搜尋座位</button>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box zone-red"></div>正中央 (54-55)</div>
+        <div class="legend-item"><div class="color-box zone-orange"></div>舞台C位 (50-59)</div>
+        <div class="legend-item"><div class="color-box zone-yellow"></div>主舞台正對 (43-66)</div>
+        <div class="legend-item"><div class="color-box zone-blue"></div>LED大螢幕 (30-42, 67-79)</div>
+        <div class="legend-item"><div class="color-box zone-gray"></div>視線邊緣/未開賣 (1-29, 80-108)</div>
+    </div>
+
+    <div class="map-container">
+        <div class="seat-map" id="seatMap">
+            <!-- JavaScript 會在這裡自動畫出座位 -->
+        </div>
+    </div>
+
+    <script>
+        const totalRows = 24;
+        const totalSeats = 108;
+        const verticalAisles = [15, 29, 42, 66, 79, 93]; // 遞減排法切點
+        const centerAisle = 54; // 絕對中軸線走道
+        const horizontalAisles = [10, 20];
+
+        function getZoneClass(seat) {
+            if (seat >= 54 && seat <= 55) return 'zone-red';
+            if (seat >= 50 && seat <= 59) return 'zone-orange';
+            if (seat >= 43 && seat <= 66) return 'zone-yellow';
+            if ((seat >= 30 && seat <= 42) || (seat >= 67 && seat <= 79)) return 'zone-blue';
+            return 'zone-gray';
+        }
+
+        function buildMap() {
+            const mapDiv = document.getElementById('seatMap');
+            
+            for (let r = 1; r <= totalRows; r++) {
+                let rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                if (horizontalAisles.includes(r - 1)) {
+                    rowDiv.classList.add('h-aisle');
+                }
+                
+                let label = document.createElement('div');
+                label.className = 'row-label';
+                label.innerText = `第 ${r} 排`;
+                rowDiv.appendChild(label);
+
+                for (let s = 1; s <= totalSeats; s++) {
+                    let seatDiv = document.createElement('div');
+                    seatDiv.className = `seat ${getZoneClass(s)}`;
+                    seatDiv.id = `seat-${r}-${s}`;
+                    seatDiv.innerText = s;
+                    
+                    if (s === centerAisle) {
+                        seatDiv.classList.add('center-aisle');
+                    } else if (verticalAisles.includes(s)) {
+                        seatDiv.classList.add('v-aisle');
+                    }
+                    
+                    rowDiv.appendChild(seatDiv);
+                }
+                mapDiv.appendChild(rowDiv);
+            }
+        }
+
+        function findSeat() {
+            // 移除舊的高亮
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            
+            const r = document.getElementById('inputRow').value;
+            const s = document.getElementById('inputSeat').value;
+            
+            if (r && s) {
+                const target = document.getElementById(`seat-${r}-${s}`);
+                if (target) {
+                    target.classList.add('highlight');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                } else {
+                    alert("找不到該座位，請確認排數(1-24)與號碼(1-108)。");
+                }
+            }
+        }
+
+        // 載入時畫出座位表
+        window.onload = buildMap;
+    </script>
+</body>
+</html>
