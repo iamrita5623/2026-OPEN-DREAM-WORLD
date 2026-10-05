@@ -10,9 +10,10 @@
         .search-box { background: #2a2a2a; padding: 20px; border-radius: 8px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         select { padding: 8px; font-size: 16px; margin-bottom: 15px; border-radius: 4px; background: #fff; border: 1px solid #444; font-weight: bold; width: 100%; max-width: 300px; }
         
-        .compare-toggle { margin-bottom: 15px; font-size: 16px; font-weight: bold; cursor: pointer; display: inline-block; background: #333; padding: 8px 15px; border-radius: 6px; }
-        .compare-toggle:hover { background: #444; }
-        .compare-toggle input { width: 18px; height: 18px; margin-right: 8px; vertical-align: middle; cursor: pointer; }
+        .toggle-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .toggle-btn { font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: #333; padding: 8px 15px; border-radius: 6px; user-select: none; }
+        .toggle-btn:hover { background: #444; }
+        .toggle-btn input { width: 18px; height: 18px; margin-right: 8px; cursor: pointer; }
 
         .input-group { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
         .seat-box { padding: 10px 15px; border-radius: 6px; font-weight: bold; }
@@ -23,7 +24,6 @@
         button { padding: 10px 30px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; letter-spacing: 1px; }
         button:hover { background-color: #45a049; }
         
-        /* 結果顯示區 */
         #resultBox { display: none; margin-top: 20px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 14px; color: #fff; line-height: 1.6; text-align: center; max-width: 700px; margin-left: auto; margin-right: auto; }
         
         .compare-container { display: flex; justify-content: center; gap: 15px; text-align: left; margin-top: 10px; flex-wrap: wrap; }
@@ -50,7 +50,6 @@
         .zone-new { background-color: #ffb3ba; color: #000; } 
         .zone-gray { background-color: #444444; color: #999; } 
         
-        /* 地圖高亮特效 */
         .highlight-one { box-shadow: 0 0 15px 5px #00BFFF; border: 2px solid #00BFFF; transform: scale(1.3); z-index: 10; background-color: #00BFFF; color: #000; font-weight: bold; }
         .highlight-two { box-shadow: 0 0 15px 5px #FFA500; border: 2px solid #FFA500; transform: scale(1.3); z-index: 10; background-color: #FFA500; color: #000; font-weight: bold; }
     </style>
@@ -70,16 +69,19 @@
                 <option value="10x10">2. 10x10排法 </option>
             </select>
             
-            <br>
-            <label class="compare-toggle">
-                <input type="checkbox" id="compareCheckbox" onchange="toggleCompare()"> 比較兩個座位
-            </label>
+            <div class="toggle-group">
+                <label class="toggle-btn">
+                    <input type="checkbox" id="hideUnsoldCheckbox" onchange="buildMap()" checked> 隱藏尚未販售區域
+                </label>
+                <label class="toggle-btn">
+                    <input type="checkbox" id="compareCheckbox" onchange="toggleCompare()"> 比較第二個座位
+                </label>
+            </div>
             
             <div class="input-group">
                 <div class="seat-box seat-one">
                     🟦 座位 1：第 <input type="number" id="rowA" min="1" max="24"> 排 <input type="number" id="seatA" min="1" max="108"> 號
                 </div>
-                <!-- 預設隱藏，打勾後才會顯示 -->
                 <div class="seat-box seat-two" id="compareBox" style="display: none;">
                     🟧 座位 2：第 <input type="number" id="rowB" min="1" max="24"> 排 <input type="number" id="seatB" min="1" max="108"> 號
                 </div>
@@ -94,7 +96,7 @@
     <div class="legend">
         <div class="legend-item"><div class="color-box" style="background-color: #e0e0e0;"></div>共同開賣區域 (21~88)</div>
         <div class="legend-item"><div class="color-box" style="background-color: #ffb3ba;"></div>12/4 加開區域 (15~20, 89~94)</div>
-        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域 (1~14, 95~108)</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域  (1~14, 95~108)</div>
     </div>
 
     <div class="map-container">
@@ -107,7 +109,6 @@
         const horizontalAisles = [10, 20];
         const centerAisle = 54;
 
-        // 控制「比較座位」輸入框的顯示與隱藏
         function toggleCompare() {
             const isChecked = document.getElementById('compareCheckbox').checked;
             document.getElementById('compareBox').style.display = isChecked ? 'block' : 'none';
@@ -123,8 +124,8 @@
             return width;
         }
 
-        function getMarginAfter(seat, aisles) {
-            if (seat === totalSeats) return 0;
+        function getMarginAfter(seat, aisles, maxS) {
+            if (seat === maxS) return 0;
             let m = 2;
             if (seat === centerAisle) m += 30;
             else if (aisles.includes(seat)) m += 15;
@@ -133,18 +134,31 @@
 
         function buildMap() {
             const layout = document.getElementById('layoutSelect').value;
+            const hideUnsold = document.getElementById('hideUnsoldCheckbox').checked;
             const mapDiv = document.getElementById('seatMap');
             mapDiv.innerHTML = '';
             document.getElementById('resultBox').style.display = 'none';
 
+            // 決定畫面的座位範圍
+            const minSeat = hideUnsold ? 15 : 1;
+            const maxSeat = hideUnsold ? 94 : 108;
+
             let verticalAisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
-            let stageConfigs = [{type: 'empty', range: [1, 24]}, {type: 'led', range: [25, 39]}, {type: 'main', range: [40, 69]}, {type: 'led', range: [70, 84]}, {type: 'empty', range: [85, 108]}];
+            let baseConfigs = [{type: 'empty', range: [1, 24]}, {type: 'led', range: [25, 39]}, {type: 'main', range: [40, 69]}, {type: 'led', range: [70, 84]}, {type: 'empty', range: [85, 108]}];
+            
+            // 動態計算上方舞台的比例
+            let stageConfigs = [];
+            baseConfigs.forEach(c => {
+                let s = Math.max(c.range[0], minSeat);
+                let e = Math.min(c.range[1], maxSeat);
+                if (s <= e) stageConfigs.push({type: c.type, range: [s, e]});
+            });
 
             let stageHtml = '<div class="row" style="margin-bottom: 25px; font-weight: bold; text-align: center; line-height: 30px; font-size: 14px;">';
             stageHtml += '<div class="row-label">舞台區</div>';
             stageConfigs.forEach(c => {
                 let w = getBlockWidth(c.range[0], c.range[1], verticalAisles);
-                let m = getMarginAfter(c.range[1], verticalAisles);
+                let m = getMarginAfter(c.range[1], verticalAisles, maxSeat);
                 if (c.type === 'empty') stageHtml += `<div style="width: ${w}px; margin-right: ${m}px;"></div>`;
                 else if (c.type === 'led') stageHtml += `<div style="width: ${w}px; margin-right: ${m}px; background-color: #4a90e2; color: #fff; border-radius: 4px;">轉播螢幕</div>`;
                 else if (c.type === 'main') stageHtml += `<div style="width: ${w}px; margin-right: ${m}px; background-color: #f39c12; color: #fff; border-radius: 4px;">主舞台</div>`;
@@ -152,6 +166,7 @@
             stageHtml += '</div>';
             mapDiv.innerHTML += stageHtml;
 
+            // 繪製座位 (根據 minSeat 與 maxSeat 決定範圍)
             for (let r = 1; r <= totalRows; r++) {
                 let rowDiv = document.createElement('div');
                 rowDiv.className = 'row';
@@ -162,7 +177,7 @@
                 label.innerText = `第 ${r} 排`;
                 rowDiv.appendChild(label);
 
-                for (let s = 1; s <= totalSeats; s++) {
+                for (let s = minSeat; s <= maxSeat; s++) {
                     let seatDiv = document.createElement('div');
                     let zoneClass = 'zone-default';
                     if (s <= 14 || s >= 95) zoneClass = 'zone-gray';
@@ -171,7 +186,7 @@
                     seatDiv.className = `seat ${zoneClass}`;
                     seatDiv.id = `seat-${r}-${s}`;
                     seatDiv.innerText = s;
-                    seatDiv.style.marginRight = getMarginAfter(s, verticalAisles) + 'px';
+                    seatDiv.style.marginRight = getMarginAfter(s, verticalAisles, maxSeat) + 'px';
                     rowDiv.appendChild(seatDiv);
                 }
                 mapDiv.appendChild(rowDiv);
@@ -283,11 +298,6 @@
         }
 
         function analyzeSeats() {
-            // 清除先前的高亮
-            document.querySelectorAll('.highlight-one, .highlight-two').forEach(el => {
-                el.classList.remove('highlight-one');
-                el.classList.remove('highlight-two');
-            });
             const resultBox = document.getElementById('resultBox');
             resultBox.style.display = 'none';
 
@@ -302,11 +312,37 @@
                 return;
             }
 
-            let target1 = document.getElementById(`seat-${r1}-${s1}`);
+            let s1_val = parseInt(s1);
+            let s2_val = null;
+            if (isCompare) {
+                let s2_input = document.getElementById('seatB').value;
+                if (s2_input) s2_val = parseInt(s2_input);
+            }
+
+            // 智慧防呆：如果搜尋的座位在隱藏區域內，自動解除隱藏並重繪地圖
+            const hideUnsold = document.getElementById('hideUnsoldCheckbox').checked;
+            if (hideUnsold) {
+                let needsUnhide = (s1_val < 15 || s1_val > 94);
+                if (isCompare && s2_val && (s2_val < 15 || s2_val > 94)) needsUnhide = true;
+                
+                if (needsUnhide) {
+                    document.getElementById('hideUnsoldCheckbox').checked = false;
+                    buildMap();
+                }
+            }
+
+            // 清除先前的高亮標記
+            document.querySelectorAll('.highlight-one, .highlight-two').forEach(el => {
+                el.classList.remove('highlight-one');
+                el.classList.remove('highlight-two');
+            });
+
+            // 因為 buildMap 可能剛被呼叫，所以要在這時候抓取目標元素
+            let target1 = document.getElementById(`seat-${r1}-${s1_val}`);
             if (!target1) { alert("找不到 座位 1！請確認範圍 (1-24排, 1-108號)。"); return; }
             
             target1.classList.add('highlight-one');
-            let stats1 = getSeatStats(parseInt(r1), parseInt(s1), layout);
+            let stats1 = getSeatStats(parseInt(r1), s1_val, layout);
 
             // 如果沒有勾選比較模式
             if (!isCompare) {
@@ -320,23 +356,21 @@
 
             // 如果勾選了比較模式
             let r2 = document.getElementById('rowB').value;
-            let s2 = document.getElementById('seatB').value;
-
-            if (!r2 || !s2) {
+            if (!r2 || !s2_val) {
                 alert("您已啟用比較功能，請輸入「座位 2」的排數與號碼！");
                 return;
             }
 
-            let target2 = document.getElementById(`seat-${r2}-${s2}`);
+            let target2 = document.getElementById(`seat-${r2}-${s2_val}`);
             if (!target2) { alert("找不到 座位 2！請確認範圍 (1-24排, 1-108號)。"); return; }
             
             target2.classList.add('highlight-two');
-            let stats2 = getSeatStats(parseInt(r2), parseInt(s2), layout);
+            let stats2 = getSeatStats(parseInt(r2), s2_val, layout);
 
-            // 捲動至地圖置中
+            // 捲動地圖
             target1.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
-            // 渲染並排卡片，去除輸贏字眼
+            // 渲染比較結果
             resultBox.innerHTML = `
                 <div style="font-size:18px; font-weight:bold; color:#ccc; margin-bottom: 5px;">📊 座位分析比較</div>
                 <div class="compare-container">
