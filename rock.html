@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>夢想音樂節 - 搖滾區座位查詢</title>
+    <title>夢想音樂節 - 全場座位雷達 (1~43排)</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; text-align: center; }
         .header { margin-bottom: 20px; }
@@ -21,8 +21,8 @@
         .seat-two { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
         
         input[type="number"] { padding: 6px; font-size: 16px; width: 55px; margin: 0 5px; border: 1px solid #444; border-radius: 4px; background: #fff; text-align: center; color: #000; }
-        button { padding: 10px 30px; font-size: 16px; background-color: #A066FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; letter-spacing: 1px; }
-        button:hover { background-color: #B388FF; }
+        button { padding: 10px 30px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; letter-spacing: 1px; }
+        button:hover { background-color: #45a049; }
         
         #resultBox { display: none; margin-top: 20px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 14px; color: #fff; line-height: 1.6; text-align: center; max-width: 700px; margin-left: auto; margin-right: auto; }
         
@@ -36,7 +36,7 @@
         .advice-item { display: block; margin-top: 6px; padding-left: 5px; color: #ddd; font-size: 13px; }
         .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #111; color: #fff; font-size: 11px; margin-right: 5px; font-weight: bold; }
         
-        .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
+        .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; background: #222; padding: 15px; border-radius: 8px; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .color-box { width: 16px; height: 16px; border-radius: 3px; }
         
@@ -46,31 +46,29 @@
         .row-label { width: 50px; text-align: right; margin-right: 15px; font-size: 12px; line-height: 20px; color: #aaa; flex-shrink: 0; }
         .seat { width: 20px; height: 20px; border-radius: 4px; font-size: 9px; line-height: 20px; text-align: center; cursor: pointer; position: relative; box-sizing: border-box; }
         
-        /* 顏色設定優化：改為舒適的淺紫色，並將字體轉黑 */
-        .zone-default { background-color: #B388FF; color: #000; font-weight: bold; } 
-        .zone-new { background-color: #ffb3ba; color: #000; font-weight: bold; } 
+        /* 統一色彩管理 */
+        .zone-super-core { background-color: #e0e0e0; color: #000; font-weight: bold; }
+        .zone-super-new { background-color: #ffb3ba; color: #000; font-weight: bold; } 
+        .zone-rock-core { background-color: #B388FF; color: #000; font-weight: bold; }
+        .zone-rock-new { background-color: #DDA0DD; color: #000; font-weight: bold; }
         .zone-gray { background-color: #444444; color: #999; } 
         
         .highlight-one { box-shadow: 0 0 15px 5px #00BFFF; border: 2px solid #00BFFF; transform: scale(1.3); z-index: 10; background-color: #00BFFF; color: #000; font-weight: bold; }
         .highlight-two { box-shadow: 0 0 15px 5px #FFA500; border: 2px solid #FFA500; transform: scale(1.3); z-index: 10; background-color: #FFA500; color: #000; font-weight: bold; }
+        
+        .zone-divider { margin: 25px 0; border-top: 2px dashed #666; padding-top: 15px; text-align: center; font-weight: bold; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h2>
-            夢想音樂節 - <span style="color: #B388FF;">搖滾區 (25~43排)</span> 座位查詢
+            夢想音樂節 - <span style="color: #FF4C4C;">全場座位雷達 (1~43排)</span>
             <div style="font-size: 15px; color: #f39c12; font-weight: normal; margin-top: 10px;">
-                (※ 本系統僅收錄後半部 25~43 排。圖中留白區塊等同前方 24 排之真實視覺距離)
+                (※ 整合前方超級搖滾區與後方搖滾區。座位圖僅供參考，實際排法請以現場為準)
             </div>
         </h2>
         
-        <!-- 分頁切換選單 -->
-        <div style="margin-bottom: 20px; display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid #444;">
-            <a href="index.html" style="padding: 10px 20px; background: #2a2a2a; color: #aaa; text-decoration: none; font-weight: bold;">💖 超級搖滾區 (1~24排)</a>
-            <a href="rock.html" style="padding: 10px 20px; background: #A066FF; color: #fff; text-decoration: none; font-weight: bold;">💜 搖滾區 (25~43排)</a>
-        </div>
-
         <div class="search-box">
             <select id="layoutSelect" onchange="buildMap()">
                 <option value="decreasing">1. 遞減排法 (15-14-13-12)</option>
@@ -88,10 +86,10 @@
             
             <div class="input-group">
                 <div class="seat-box seat-one">
-                    🟦 座位 1：第 <input type="number" id="rowA" min="25" max="43"> 排 <input type="number" id="seatA" min="1" max="108"> 號
+                    🟦 座位 1：第 <input type="number" id="rowA" min="1" max="43"> 排 <input type="number" id="seatA" min="1" max="108"> 號
                 </div>
                 <div class="seat-box seat-two" id="compareBox" style="display: none;">
-                    🟧 座位 2：第 <input type="number" id="rowB" min="25" max="43"> 排 <input type="number" id="seatB" min="1" max="108"> 號
+                    🟧 座位 2：第 <input type="number" id="rowB" min="1" max="43"> 排 <input type="number" id="seatB" min="1" max="108"> 號
                 </div>
             </div>
             
@@ -101,10 +99,17 @@
         </div>
     </div>
 
+    <!-- 複合式圖例 -->
     <div class="legend">
-        <div class="legend-item"><div class="color-box" style="background-color: #B388FF;"></div>搖滾區 共同開賣區域</div>
-        <div class="legend-item"><div class="color-box" style="background-color: #ffb3ba;"></div>12/4 加開區域</div>
-        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域</div>
+        <div style="width: 100%; margin-bottom: 8px; color: #FF4C4C; font-weight: bold;">[ 前半：超級搖滾區 ]</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #e0e0e0;"></div>核心區</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #ffb3ba;"></div>12/4加開區</div>
+        <div style="width: 100%; margin: 8px 0; color: #B388FF; font-weight: bold;">[ 後半：搖滾區 ]</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #B388FF;"></div>核心區</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #DDA0DD;"></div>12/4加開區</div>
+        <div style="width: 100%; margin-top: 8px; color: #999;">
+            <div class="legend-item" style="justify-content: center;"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域 (隱藏/邊疆)</div>
+        </div>
     </div>
 
     <div class="map-container">
@@ -112,10 +117,9 @@
     </div>
 
     <script>
-        const startRow = 25;
-        const endRow = 43;
+        const totalRows = 43;
         const totalSeats = 108;
-        const horizontalAisles = [10]; 
+        const horizontalAisles = [10, 20, 24, 34]; // 加入 24 排(兩區交界)與搖滾區內的走道
         const centerAisle = 54;
 
         function toggleCompare() {
@@ -152,7 +156,7 @@
             const maxSeat = hideUnsold ? 94 : 108;
             let verticalAisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
 
-            // 1. 畫出真實的主舞台
+            // 繪製主舞台
             let baseConfigs = [{type: 'empty', range: [1, 24]}, {type: 'led', range: [25, 39]}, {type: 'main', range: [40, 69]}, {type: 'led', range: [70, 84]}, {type: 'empty', range: [85, 108]}];
             let stageConfigs = [];
             baseConfigs.forEach(c => {
@@ -161,7 +165,7 @@
                 if (s <= e) stageConfigs.push({type: c.type, range: [s, e]});
             });
 
-            let stageHtml = '<div class="row" style="margin-bottom: 10px; font-weight: bold; text-align: center; line-height: 30px; font-size: 14px;">';
+            let stageHtml = '<div class="row" style="margin-bottom: 25px; font-weight: bold; text-align: center; line-height: 30px; font-size: 14px;">';
             stageHtml += '<div class="row-label">舞台區</div>';
             stageConfigs.forEach(c => {
                 let w = getBlockWidth(c.range[0], c.range[1], verticalAisles);
@@ -173,24 +177,20 @@
             stageHtml += '</div>';
             mapDiv.innerHTML += stageHtml;
 
-            // 2. 建立「1:1真實物理比例」的 600px 巨大虛擬方塊
-            mapDiv.innerHTML += `
-                <div style="display: flex; margin-bottom: 25px;">
-                    <div class="row-label" style="display: flex; align-items: center; justify-content: flex-end;">1~24 排</div>
-                    <div style="flex-grow: 1; height: 600px; background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 10px, #222 10px, #222 20px); border: 2px dashed #FF4C4C; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; padding: 20px; opacity: 0.8;">
-                        <div style="font-size: 22px; color: #FF4C4C; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 10px rgba(255,76,76,0.5);">🚀 這是前方的 超級搖滾區 (1~24排) 🚀</div>
-                        <div style="color: #aaa; font-size: 15px;">(此灰色區塊的高度，完美等同於真實 24 排座位的視覺距離)</div>
-                    </div>
-                </div>
-            `;
+            // 繪製 1~43 排座位
+            for (let r = 1; r <= totalRows; r++) {
+                
+                // 【視覺分界線】24排與25排之間
+                if (r === 25) {
+                    let divider = document.createElement('div');
+                    divider.className = 'zone-divider';
+                    divider.innerHTML = '<span style="color:#B388FF; font-size:16px;">⬇️ 下方為 搖滾區 ($2999) 第 25~43 排 ⬇️</span>';
+                    mapDiv.appendChild(divider);
+                }
 
-            // 3. 畫出真實的 25~43 排座位
-            for (let r = startRow; r <= endRow; r++) {
                 let rowDiv = document.createElement('div');
                 rowDiv.className = 'row';
-                
-                let relativeRow = r - startRow;
-                if (horizontalAisles.includes(relativeRow)) rowDiv.style.marginTop = '20px';
+                if (horizontalAisles.includes(r - 1) && r !== 25) rowDiv.style.marginTop = '20px';
                 
                 let label = document.createElement('div');
                 label.className = 'row-label';
@@ -199,10 +199,21 @@
 
                 for (let s = minSeat; s <= maxSeat; s++) {
                     let seatDiv = document.createElement('div');
-                    let zoneClass = 'zone-default';
-                    if (s <= 14 || s >= 95) zoneClass = 'zone-gray';
-                    else if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) zoneClass = 'zone-new';
                     
+                    // 顏色與區塊判斷
+                    let zoneClass = 'zone-gray';
+                    if (s >= 15 && s <= 94) {
+                        if (r <= 24) {
+                            // 前半超級搖滾
+                            if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) zoneClass = 'zone-super-new';
+                            else zoneClass = 'zone-super-core';
+                        } else {
+                            // 後半搖滾
+                            if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) zoneClass = 'zone-rock-new';
+                            else zoneClass = 'zone-rock-core';
+                        }
+                    }
+
                     seatDiv.className = `seat ${zoneClass}`;
                     seatDiv.id = `seat-${r}-${s}`;
                     seatDiv.innerText = s;
@@ -216,9 +227,12 @@
         function getSeatStats(r, s, layout) {
             let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
             
-            let relativeR = r - 24; 
-            let y = 31 + (relativeR - 1) * 0.9;
-            if (relativeR > 10) y += 2; 
+            // 統一物理深度計算：每排0.9m。加上各條走道寬度
+            let y = 3 + (r - 1) * 0.9;
+            if (r > 10) y += 2; // 第一條橫走道
+            if (r > 20) y += 2; // 第二條橫走道
+            if (r > 24) y += 3; // 超級搖滾與搖滾之間的巨大交界區
+            if (r > 34) y += 2; // 搖滾區內的走道
 
             let x = 0;
             if (s <= 54) {
@@ -233,8 +247,12 @@
             let distance = Math.sqrt(x*x + y*y);
             let angle = Math.atan(x / y) * (180 / Math.PI);
             
+            let isMainStage = (layout === 'decreasing' && s >= 40 && s <= 69) || (layout === '10x10' && s >= 40 && s <= 69);
+            
+            // 統一評分標準 (適用於 0m ~ 50m+)
             let scoreDist = Math.max(0, 100 - (distance / 50) * 60); 
             let scoreAngle = Math.max(0, 100 - (angle / 60) * 55);
+            if (isMainStage) scoreAngle = Math.min(100, scoreAngle + 12);
             
             let minScore = Math.min(scoreDist, scoreAngle);
             let maxScore = Math.max(scoreDist, scoreAngle);
@@ -242,31 +260,44 @@
             final100 = Math.min(100, Math.max(0, final100)); 
             
             let powerColor = "#00FF00";
-            if (final100 >= 80) powerColor = "#00FFFF";
-            else if (final100 >= 65) powerColor = "#32CD32";
+            if (final100 >= 85) powerColor = "#FFD700";
+            else if (final100 >= 75) powerColor = "#00FFFF";
+            else if (final100 >= 60) powerColor = "#32CD32";
             else if (final100 >= 45) powerColor = "#FFA500";
             else powerColor = "#FF4C4C";
 
             let distScore = 1; let distComment = "";
-            if (distance <= 30) { distScore=6; distComment = "視角遼闊，建議使用專業望遠鏡或旗艦手機。"; }
-            else if (distance <= 36) { distScore=7; distComment = "距離較遠，需依賴高階設備或轉播大螢幕。"; }
-            else if (distance <= 42) { distScore=8; distComment = "人物比例偏小，強烈建議攜帶大砲鏡頭輔助。"; }
-            else { distScore=9; distComment = "距離極遠，基本仰賴轉播大螢幕與現場音響。"; }
+            if (distance <= 8) { distScore=1; distComment = "極致貼臉，連汗珠都清晰可見。"; }
+            else if (distance <= 14) { distScore=2; distComment = "黃金距離，輕鬆看清全身舞蹈張力。"; }
+            else if (distance <= 20) { distScore=3; distComment = "整體感佳，拍特寫稍需變焦。"; }
+            else if (distance <= 26) { distScore=4; distComment = "距離適中，可帶輕型望遠鏡。"; }
+            else if (distance <= 32) { distScore=5; distComment = "五官開始模糊，建議使用專業望遠鏡。"; }
+            else if (distance <= 38) { distScore=6; distComment = "中後段，需部分依賴大螢幕轉播。"; }
+            else if (distance <= 44) { distScore=7; distComment = "距離遙遠，強烈建議攜帶大砲鏡頭輔助。"; }
+            else { distScore=8; distComment = "極遠氣氛區，基本仰賴大螢幕與現場音響。"; }
 
             let angleScore = 1; let angleComment = "";
-            if (angle <= 12) { angleScore=4; angleComment = "雖距離遠，但視角正中，觀看轉播螢幕極為舒適。"; }
-            else if (angle <= 20) { angleScore=5; angleComment = "微小斜角，稍稍轉頭即可，整體視野良好。"; }
-            else if (angle <= 28) { angleScore=6; angleComment = "中度偏角，略帶側面感但不影響整體大螢幕觀看。"; }
-            else if (angle <= 35) { angleScore=7; angleComment = "明顯斜視，需轉移重心看兩側螢幕。"; }
-            else if (angle <= 42) { angleScore=8; angleComment = "斜度大，面臨場地邊緣鷹架遮擋風險。"; }
-            else { angleScore=9; angleComment = "嚴重側偏邊疆，僅能看見側面，觀影體驗受限。"; }
+            if (isMainStage) {
+                if (angle <= 7) { angleScore=1; angleComment = "絕對C位，帝王正視角。"; }
+                else if (angle <= 15) { angleScore=2; angleComment = "正對主舞台，幾乎不需轉頭。"; }
+                else { angleScore=3; angleComment = "主舞台前方，視野流暢無遮擋。"; }
+            } else {
+                if (angle <= 12) { angleScore=4; angleComment = "微小偏角，視角極度舒適。"; }
+                else if (angle <= 20) { angleScore=5; angleComment = "輕微斜角，稍稍轉頭即可。"; }
+                else if (angle <= 28) { angleScore=6; angleComment = "中度偏角，不影響整體舞台。"; }
+                else if (angle <= 35) { angleScore=7; angleComment = "明顯斜視，需仰賴轉播螢幕。"; }
+                else if (angle <= 42) { angleScore=8; angleComment = "斜度大，面臨場地邊緣鷹架遮擋風險。"; }
+                else { angleScore=9; angleComment = "嚴重側偏邊疆，強烈仰賴大螢幕。"; }
+            }
 
             let finalScore = Math.max(distScore, angleScore);
             let finalRank = ""; let rankColor = "";
-            if (finalScore <= 5) { finalRank = "A 級【搖滾前線】"; rankColor = "#32CD32"; }
-            else if (finalScore === 6) { finalRank = "B+ 級【輔助出動】"; rankColor = "#9370DB"; }
-            else if (finalScore === 7) { finalRank = "B 級【側翼戰區】"; rankColor = "#8A2BE2"; }
-            else if (finalScore === 8) { finalRank = "C 級【大螢幕依賴】"; rankColor = "#A0522D"; }
+            if (final100 >= 85) { finalRank = "SSS 級【天選神位】"; rankColor = "#FFD700"; }
+            else if (final100 >= 75) { finalRank = "SS 級【完美沉浸】"; rankColor = "#FF8C00"; }
+            else if (final100 >= 65) { finalRank = "S 級【優質視野】"; rankColor = "#1E90FF"; }
+            else if (final100 >= 55) { finalRank = "A 級【舒適觀影】"; rankColor = "#32CD32"; }
+            else if (final100 >= 45) { finalRank = "B 級【輔助出動】"; rankColor = "#9370DB"; }
+            else if (final100 >= 35) { finalRank = "C 級【大螢幕依賴】"; rankColor = "#A0522D"; }
             else { finalRank = "D 級【邊疆氣氛組】"; rankColor = "#444444"; }
 
             return { r, s, distance, angle, final100, powerColor, distComment, angleComment, finalRank, rankColor };
@@ -274,11 +305,12 @@
 
         function generateCardHtml(stats, colorClass, title) {
             let titleColor = colorClass === 'card-one' ? '#00BFFF' : '#FFA500';
+            let textColor = (stats.final100 >= 85) ? '#000' : '#fff'; // SSS金色字用黑的
             return `
                 <div class="result-card ${colorClass}">
                     <div style="font-size: 16px; margin-bottom: 5px; color:#ccc;">${title}：<span style="color:${titleColor}; font-weight:bold; font-size:18px;">第 ${stats.r} 排, 第 ${stats.s} 號</span></div>
                     <div class="score-display" style="color: ${stats.powerColor};">✨ 推薦評分：${stats.final100} 分</div>
-                    <div class='final-rank' style='background:${stats.rankColor}; color:#fff;'>綜合評級：${stats.finalRank}</div>
+                    <div class='final-rank' style='background:${stats.rankColor}; color:${textColor};'>綜合評級：${stats.finalRank}</div>
                     <hr style="border-color: #444; margin: 12px 0;">
                     <span class="advice-item"><span class="tag">距離 ${stats.distance.toFixed(1)}m</span> <span style="color:#fff;">${stats.distComment}</span></span>
                     <span class="advice-item"><span class="tag">偏角 ${stats.angle.toFixed(1)}°</span> <span style="color:#fff;">${stats.angleComment}</span></span>
@@ -316,7 +348,7 @@
             }
 
             let target1 = document.getElementById(`seat-${r1}-${s1_val}`);
-            if (!target1) { alert("找不到 座位 1！請確認範圍 (25-43排, 1-108號)。"); return; }
+            if (!target1) { alert("找不到 座位 1！請確認範圍 (1-43排, 1-108號)。"); return; }
             
             target1.classList.add('highlight-one');
             let stats1 = getSeatStats(parseInt(r1), s1_val, layout);
@@ -332,7 +364,7 @@
             if (!r2 || !s2_val) { alert("請輸入「座位 2」的排數與號碼！"); return; }
 
             let target2 = document.getElementById(`seat-${r2}-${s2_val}`);
-            if (!target2) { alert("找不到 座位 2！請確認範圍 (25-43排, 1-108號)。"); return; }
+            if (!target2) { alert("找不到 座位 2！請確認範圍 (1-43排, 1-108號)。"); return; }
             
             target2.classList.add('highlight-two');
             let stats2 = getSeatStats(parseInt(r2), s2_val, layout);
