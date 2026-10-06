@@ -1,4 +1,321 @@
-<div style="margin-bottom: 20px; display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid #444;">
-    <a href="index.html" style="padding: 10px 20px; background: #2a2a2a; color: #aaa; text-decoration: none; font-weight: bold;">💖 超級搖滾區 (1~24排)</a>
-    <a href="rock.html" style="padding: 10px 20px; background: #8A2BE2; color: #fff; text-decoration: none; font-weight: bold;">💜 搖滾區 (25~43排)</a>
-</div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夢想音樂節 - 搖滾區座位查詢</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; text-align: center; }
+        .header { margin-bottom: 20px; }
+        .search-box { background: #2a2a2a; padding: 20px; border-radius: 8px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        select { padding: 8px; font-size: 16px; margin-bottom: 15px; border-radius: 4px; background: #fff; border: 1px solid #444; font-weight: bold; width: 100%; max-width: 300px; }
+        
+        .toggle-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .toggle-btn { font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; background: #333; padding: 8px 15px; border-radius: 6px; user-select: none; }
+        .toggle-btn:hover { background: #444; }
+        .toggle-btn input { width: 18px; height: 18px; margin-right: 8px; cursor: pointer; }
+
+        .input-group { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .seat-box { padding: 10px 15px; border-radius: 6px; font-weight: bold; }
+        .seat-one { background: rgba(0, 191, 255, 0.1); border: 1px solid #00BFFF; color: #00BFFF; }
+        .seat-two { background: rgba(255, 165, 0, 0.1); border: 1px solid #FFA500; color: #FFA500; }
+        
+        input[type="number"] { padding: 6px; font-size: 16px; width: 55px; margin: 0 5px; border: 1px solid #444; border-radius: 4px; background: #fff; text-align: center; color: #000; }
+        button { padding: 10px 30px; font-size: 16px; background-color: #8A2BE2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; letter-spacing: 1px; }
+        button:hover { background-color: #9370DB; }
+        
+        #resultBox { display: none; margin-top: 20px; padding: 15px; background-color: #1e1e1e; border-radius: 8px; font-size: 14px; color: #fff; line-height: 1.6; text-align: center; max-width: 700px; margin-left: auto; margin-right: auto; }
+        
+        .compare-container { display: flex; justify-content: center; gap: 15px; text-align: left; margin-top: 10px; flex-wrap: wrap; }
+        .result-card { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; background: #2a2a2a; }
+        .card-one { border-top: 4px solid #00BFFF; box-shadow: 0 4px 10px rgba(0,191,255,0.1); }
+        .card-two { border-top: 4px solid #FFA500; box-shadow: 0 4px 10px rgba(255,165,0,0.1); }
+        
+        .score-display { text-align: center; font-size: 24px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+        .final-rank { display: block; text-align: center; font-size: 15px; font-weight: bold; margin: 5px 0 10px 0; padding: 6px; border-radius: 6px; }
+        .advice-item { display: block; margin-top: 6px; padding-left: 5px; color: #ddd; font-size: 13px; }
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #111; color: #fff; font-size: 11px; margin-right: 5px; font-weight: bold; }
+        
+        .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; font-size: 14px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 16px; height: 16px; border-radius: 3px; }
+        
+        .map-container { overflow-x: auto; padding-bottom: 20px; white-space: nowrap; text-align: left; display: inline-block; }
+        .seat-map { display: inline-block; background: #1e1e1e; padding: 20px; border-radius: 8px; }
+        .row { display: flex; margin-bottom: 4px; }
+        .row-label { width: 50px; text-align: right; margin-right: 15px; font-size: 12px; line-height: 20px; color: #aaa; flex-shrink: 0; }
+        .seat { width: 20px; height: 20px; border-radius: 4px; font-size: 9px; line-height: 20px; text-align: center; cursor: pointer; position: relative; box-sizing: border-box; }
+        
+        .zone-default { background-color: #8A2BE2; color: #fff; } /* 搖滾區主要顏色改為紫色 */
+        .zone-new { background-color: #DDA0DD; color: #000; } /* 搖滾加開區 */
+        .zone-gray { background-color: #444444; color: #999; } 
+        
+        .highlight-one { box-shadow: 0 0 15px 5px #00BFFF; border: 2px solid #00BFFF; transform: scale(1.3); z-index: 10; background-color: #00BFFF; color: #000; font-weight: bold; }
+        .highlight-two { box-shadow: 0 0 15px 5px #FFA500; border: 2px solid #FFA500; transform: scale(1.3); z-index: 10; background-color: #FFA500; color: #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>
+            夢想音樂節 - <span style="color: #8A2BE2;">搖滾區 (25~43排)</span> 座位查詢
+            <div style="font-size: 15px; color: #f39c12; font-weight: normal; margin-top: 10px;">
+                (※ 本系統僅收錄後半部 25~43 排。座位圖與測距儀僅供參考，實際排法請以現場為準)
+            </div>
+        </h2>
+        
+        <!-- 分頁切換選單 -->
+        <div style="margin-bottom: 20px; display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid #444;">
+            <a href="index.html" style="padding: 10px 20px; background: #2a2a2a; color: #aaa; text-decoration: none; font-weight: bold;">💖 超級搖滾區 (1~24排)</a>
+            <a href="rock.html" style="padding: 10px 20px; background: #8A2BE2; color: #fff; text-decoration: none; font-weight: bold;">💜 搖滾區 (25~43排)</a>
+        </div>
+
+        <div class="search-box">
+            <select id="layoutSelect" onchange="buildMap()">
+                <option value="decreasing">1. 遞減排法 (15-14-13-12)</option>
+                <option value="10x10">2. 10x10排法 (有中走道)</option>
+            </select>
+            
+            <div class="toggle-group">
+                <label class="toggle-btn">
+                    <input type="checkbox" id="hideUnsoldCheckbox" onchange="buildMap()" checked> 隱藏尚未販售區域
+                </label>
+                <label class="toggle-btn">
+                    <input type="checkbox" id="compareCheckbox" onchange="toggleCompare()"> 比較第二個座位
+                </label>
+            </div>
+            
+            <div class="input-group">
+                <div class="seat-box seat-one">
+                    🟦 座位 1：第 <input type="number" id="rowA" min="25" max="43"> 排 <input type="number" id="seatA" min="1" max="108"> 號
+                </div>
+                <div class="seat-box seat-two" id="compareBox" style="display: none;">
+                    🟧 座位 2：第 <input type="number" id="rowB" min="25" max="43"> 排 <input type="number" id="seatB" min="1" max="108"> 號
+                </div>
+            </div>
+            
+            <button onclick="analyzeSeats()">分析座位</button>
+            
+            <div id="resultBox"></div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background-color: #8A2BE2;"></div>搖滾區 共同開賣區域</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #DDA0DD;"></div>12/4 加開區域</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #444444;"></div>尚未販售區域</div>
+    </div>
+
+    <div class="map-container">
+        <div class="seat-map" id="seatMap"></div>
+    </div>
+
+    <script>
+        const startRow = 25;
+        const endRow = 43;
+        const totalSeats = 108;
+        const horizontalAisles = [10]; // 搖滾區內部的橫向走道 (相對位置)
+        const centerAisle = 54;
+
+        function toggleCompare() {
+            const isChecked = document.getElementById('compareCheckbox').checked;
+            document.getElementById('compareBox').style.display = isChecked ? 'block' : 'none';
+        }
+
+        function getMarginAfter(seat, aisles, maxS) {
+            if (seat === maxS) return 0;
+            let m = 2;
+            if (seat === centerAisle) m += 30;
+            else if (aisles.includes(seat)) m += 15;
+            return m;
+        }
+
+        function buildMap() {
+            const layout = document.getElementById('layoutSelect').value;
+            const hideUnsold = document.getElementById('hideUnsoldCheckbox').checked;
+            const mapDiv = document.getElementById('seatMap');
+            mapDiv.innerHTML = '';
+            document.getElementById('resultBox').style.display = 'none';
+
+            const minSeat = hideUnsold ? 15 : 1;
+            const maxSeat = hideUnsold ? 94 : 108;
+            let verticalAisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
+
+            // 加入「超級搖滾區」的灰色虛擬示意區塊，讓粉絲知道前面還有一大區
+            let stageHtml = '<div class="row" style="margin-bottom: 25px; font-weight: bold; text-align: center; line-height: 30px; font-size: 14px; opacity: 0.7;">';
+            stageHtml += '<div class="row-label">前方區域</div>';
+            stageHtml += `<div style="width: 100%; min-width: 500px; background-color: #FF4C4C; color: #fff; border-radius: 4px; padding: 10px 0;">⬆️ 前方為 超級搖滾區 (1~24排) ⬆️</div>`;
+            stageHtml += '</div>';
+            mapDiv.innerHTML += stageHtml;
+
+            for (let r = startRow; r <= endRow; r++) {
+                let rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                
+                // 處理橫向走道 (計算相對排數)
+                let relativeRow = r - startRow;
+                if (horizontalAisles.includes(relativeRow)) rowDiv.style.marginTop = '20px';
+                
+                let label = document.createElement('div');
+                label.className = 'row-label';
+                label.innerText = `第 ${r} 排`;
+                rowDiv.appendChild(label);
+
+                for (let s = minSeat; s <= maxSeat; s++) {
+                    let seatDiv = document.createElement('div');
+                    let zoneClass = 'zone-default';
+                    if (s <= 14 || s >= 95) zoneClass = 'zone-gray';
+                    else if ((s >= 15 && s <= 20) || (s >= 89 && s <= 94)) zoneClass = 'zone-new';
+                    
+                    seatDiv.className = `seat ${zoneClass}`;
+                    seatDiv.id = `seat-${r}-${s}`;
+                    seatDiv.innerText = s;
+                    seatDiv.style.marginRight = getMarginAfter(s, verticalAisles, maxSeat) + 'px';
+                    rowDiv.appendChild(seatDiv);
+                }
+                mapDiv.appendChild(rowDiv);
+            }
+        }
+
+        function getSeatStats(r, s, layout) {
+            let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
+            
+            // Y軸深度計算：加上前方 24排超級搖滾區的深度 (約 28m) + 緩衝區 3m + 現在的排數
+            let relativeR = r - 24; 
+            let y = 31 + (relativeR - 1) * 0.9;
+            if (relativeR > 10) y += 2; // 搖滾區內的走道
+
+            let x = 0;
+            if (s <= 54) {
+                for (let i = s; i < 54; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
+                x += 0.25; 
+            } else if (s >= 55) {
+                for (let i = 55; i < s; i++) { x += 0.5; if (v_aisles.includes(i)) x += 1.0; }
+                x += 0.25;
+            }
+            if (s !== 54 && s !== 55) x += 1.0; 
+
+            let distance = Math.sqrt(x*x + y*y);
+            let angle = Math.atan(x / y) * (180 / Math.PI);
+            
+            // 後方搖滾區無主舞台特權，皆嚴格判定
+            let scoreDist = Math.max(0, 100 - (distance / 50) * 60); 
+            let scoreAngle = Math.max(0, 100 - (angle / 60) * 55);
+            
+            let minScore = Math.min(scoreDist, scoreAngle);
+            let maxScore = Math.max(scoreDist, scoreAngle);
+            let final100 = Math.round((minScore * 0.7) + (maxScore * 0.3));
+            final100 = Math.min(100, Math.max(0, final100)); // 限制在 0-100 之間
+            
+            let powerColor = "#00FF00";
+            if (final100 >= 80) powerColor = "#00FFFF";
+            else if (final100 >= 65) powerColor = "#32CD32";
+            else if (final100 >= 45) powerColor = "#FFA500";
+            else powerColor = "#FF4C4C";
+
+            let distScore = 1; let distComment = "";
+            if (distance <= 30) { distScore=6; distComment = "視角遼闊，建議使用專業望遠鏡或旗艦手機。"; }
+            else if (distance <= 36) { distScore=7; distComment = "距離較遠，需依賴高階設備或轉播大螢幕。"; }
+            else if (distance <= 42) { distScore=8; distComment = "人物比例偏小，強烈建議攜帶大砲鏡頭輔助。"; }
+            else { distScore=9; distComment = "距離極遠，基本仰賴轉播大螢幕與現場音響。"; }
+
+            let angleScore = 1; let angleComment = "";
+            if (angle <= 12) { angleScore=4; angleComment = "雖距離遠，但視角正中，觀看轉播螢幕極為舒適。"; }
+            else if (angle <= 20) { angleScore=5; angleComment = "微小斜角，稍稍轉頭即可，整體視野良好。"; }
+            else if (angle <= 28) { angleScore=6; angleComment = "中度偏角，略帶側面感但不影響整體大螢幕觀看。"; }
+            else if (angle <= 35) { angleScore=7; angleComment = "明顯斜視，需轉移重心看兩側螢幕。"; }
+            else if (angle <= 42) { angleScore=8; angleComment = "斜度大，面臨場地邊緣鷹架遮擋風險。"; }
+            else { angleScore=9; angleComment = "嚴重側偏邊疆，僅能看見側面，觀影體驗受限。"; }
+
+            let finalScore = Math.max(distScore, angleScore);
+            let finalRank = ""; let rankColor = "";
+            if (finalScore <= 5) { finalRank = "A 級【搖滾前線】"; rankColor = "#32CD32"; }
+            else if (finalScore === 6) { finalRank = "B+ 級【輔助出動】"; rankColor = "#9370DB"; }
+            else if (finalScore === 7) { finalRank = "B 級【側翼戰區】"; rankColor = "#8A2BE2"; }
+            else if (finalScore === 8) { finalRank = "C 級【大螢幕依賴】"; rankColor = "#A0522D"; }
+            else { finalRank = "D 級【邊疆氣氛組】"; rankColor = "#444444"; }
+
+            return { r, s, distance, angle, final100, powerColor, distComment, angleComment, finalRank, rankColor };
+        }
+
+        function generateCardHtml(stats, colorClass, title) {
+            let titleColor = colorClass === 'card-one' ? '#00BFFF' : '#FFA500';
+            return `
+                <div class="result-card ${colorClass}">
+                    <div style="font-size: 16px; margin-bottom: 5px; color:#ccc;">${title}：<span style="color:${titleColor}; font-weight:bold; font-size:18px;">第 ${stats.r} 排, 第 ${stats.s} 號</span></div>
+                    <div class="score-display" style="color: ${stats.powerColor};">✨ 推薦評分：${stats.final100} 分</div>
+                    <div class='final-rank' style='background:${stats.rankColor}; color:#fff;'>綜合評級：${stats.finalRank}</div>
+                    <hr style="border-color: #444; margin: 12px 0;">
+                    <span class="advice-item"><span class="tag">距離 ${stats.distance.toFixed(1)}m</span> <span style="color:#fff;">${stats.distComment}</span></span>
+                    <span class="advice-item"><span class="tag">偏角 ${stats.angle.toFixed(1)}°</span> <span style="color:#fff;">${stats.angleComment}</span></span>
+                </div>
+            `;
+        }
+
+        function analyzeSeats() {
+            document.querySelectorAll('.highlight-one, .highlight-two').forEach(el => {
+                el.classList.remove('highlight-one'); el.classList.remove('highlight-two');
+            });
+            const resultBox = document.getElementById('resultBox');
+            resultBox.style.display = 'none';
+
+            const layout = document.getElementById('layoutSelect').value;
+            const isCompare = document.getElementById('compareCheckbox').checked;
+            
+            let r1 = document.getElementById('rowA').value;
+            let s1 = document.getElementById('seatA').value;
+
+            if (!r1 || !s1) { alert("請輸入「座位 1」的排數與號碼！"); return; }
+
+            let s1_val = parseInt(s1);
+            let s2_val = null;
+            if (isCompare) {
+                let s2_input = document.getElementById('seatB').value;
+                if (s2_input) s2_val = parseInt(s2_input);
+            }
+
+            const hideUnsold = document.getElementById('hideUnsoldCheckbox').checked;
+            if (hideUnsold) {
+                let needsUnhide = (s1_val < 15 || s1_val > 94);
+                if (isCompare && s2_val && (s2_val < 15 || s2_val > 94)) needsUnhide = true;
+                if (needsUnhide) { document.getElementById('hideUnsoldCheckbox').checked = false; buildMap(); }
+            }
+
+            let target1 = document.getElementById(`seat-${r1}-${s1_val}`);
+            if (!target1) { alert("找不到 座位 1！請確認範圍 (25-43排, 1-108號)。"); return; }
+            
+            target1.classList.add('highlight-one');
+            let stats1 = getSeatStats(parseInt(r1), s1_val, layout);
+
+            if (!isCompare) {
+                target1.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                resultBox.innerHTML = `<div class="compare-container" style="justify-content: center;">` + generateCardHtml(stats1, 'card-one', '🟦 查詢座位') + `</div>`;
+                resultBox.style.display = 'block';
+                return;
+            }
+
+            let r2 = document.getElementById('rowB').value;
+            if (!r2 || !s2_val) { alert("請輸入「座位 2」的排數與號碼！"); return; }
+
+            let target2 = document.getElementById(`seat-${r2}-${s2_val}`);
+            if (!target2) { alert("找不到 座位 2！請確認範圍 (25-43排, 1-108號)。"); return; }
+            
+            target2.classList.add('highlight-two');
+            let stats2 = getSeatStats(parseInt(r2), s2_val, layout);
+
+            target1.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+            resultBox.innerHTML = `
+                <div style="font-size:18px; font-weight:bold; color:#ccc; margin-bottom: 5px;">📊 座位分析比較</div>
+                <div class="compare-container">
+                    ${generateCardHtml(stats1, 'card-one', '🟦 座位 1')}
+                    ${generateCardHtml(stats2, 'card-two', '🟧 座位 2')}
+                </div>
+            `;
+            resultBox.style.display = 'block';
+        }
+
+        window.onload = buildMap;
+    </script>
+</body>
+</html>
