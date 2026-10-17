@@ -255,7 +255,6 @@
         </div>
 
         <div class="sheet-body">
-            <!-- 依需求加入專屬警示免責文字 -->
             <div class="disclaimer-banner">
                 ※ 本圖僅供參考，實際排法請以現場為準
             </div>
@@ -310,7 +309,6 @@
     let audienceBodyMesh = null;
     let audienceLightsMesh = null;
 
-    // 手燈基準座標快取，用於局部原位左右微搖
     let lightstickLocalPositions = [];
 
     let idolGroup; 
@@ -330,7 +328,7 @@
 
     let showLightsticks = true;
 
-    // 手指拖曳抽屜手勢
+    // 抽屜手勢控制
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -357,7 +355,7 @@
 
         function onTouchMove(e) {
             if (!isDragging) return;
-            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            const y = e.touches ? e.touches[0] : e.clientY;
             const deltaY = y - startY;
             startY = y;
 
@@ -553,7 +551,7 @@
             scene.add(p);
         });
 
-        // 正中央主視覺 LED
+        // 主視覺 LED
         mainScreenCanvas = document.createElement('canvas');
         mainScreenCanvas.width = 1024;
         mainScreenCanvas.height = 512;
@@ -662,7 +660,7 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與【胸前低矮、微幅左右輕擺】湖水綠手燈
+    // 前方觀眾與【校正至肩膀高度・清晰可見不擋舞台】湖水綠手燈
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -690,8 +688,8 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 湖水綠手燈：精緻化長度 14cm，細緻棒身
-        const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.14, 8);
+        // 湖水綠手燈棒身 (長約 22cm，適中手持手燈比例)
+        const lightGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.22, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
 
@@ -714,15 +712,18 @@
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 手燈握在胸前偏右下位置 (高度 y + 0.65m，遠低於人頭 0.96m，絕不擋舞台)
-                const lx = coords.x + 0.12;
-                const ly = coords.y + 0.65;
-                const lz = coords.z - 0.15;
+                // ========================================================
+                // 【核心位置校正】：精確移至右肩膀高度 (y + 0.88m)
+                // 位於肩膀右側偏外 (x + 0.22m)，剛好在前排頭部與肩膀側邊空檔，清楚可見！
+                // ========================================================
+                const lx = coords.x + 0.22;
+                const ly = coords.y + 0.88;
+                const lz = coords.z - 0.12;
 
-                lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: Math.sin(idx * 0.7) });
+                lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: (s * 0.4) + (r * 0.8) });
 
                 dummyLight.position.set(lx, ly, lz);
-                dummyLight.rotation.set(0.15, 0, 0); // 握在胸前垂直微前傾
+                dummyLight.rotation.set(0.1, 0, -0.15); // 手持略微向外斜傾
                 dummyLight.updateMatrix();
                 audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
 
@@ -804,6 +805,7 @@
             screenCtx.fillStyle = 'rgba(216, 61, 137, 0.28)';
             screenCtx.fill();
 
+            // 偶像上半身特寫
             screenCtx.fillStyle = '#ffdfd0';
             screenCtx.beginPath();
             screenCtx.arc(320, 150 + Math.sin(time * 2) * 4, 45, 0, Math.PI * 2);
@@ -977,7 +979,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // 核心渲染動畫：手燈在原地「微幅左右輕擺」，絕不飛上高空
+    // 核心渲染動畫：手燈在右肩位置「原位微幅左右輕擺」
     const dummyLightTick = new THREE.Object3D();
 
     function animate(currentTime) {
@@ -990,14 +992,14 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 手燈在每位觀眾胸前原位輕微左右搖晃 (擺幅僅約 ±0.15 弧度，約 8 度)
+        // 手燈在右肩原位輕微左右擺動 (僅微幅 ±0.1 弧度，約 5~6 度)
         if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
             for (let i = 0; i < lightstickLocalPositions.length; i++) {
                 const pos = lightstickLocalPositions[i];
-                const waveAngle = Math.sin(time * 2.8 + pos.offset) * 0.14; // 微幅左右搖擺
+                const waveAngle = Math.sin(time * 2.6 + pos.offset) * 0.11;
                 
                 dummyLightTick.position.set(pos.x, pos.y, pos.z);
-                dummyLightTick.rotation.set(0.15, 0, waveAngle); // 僅左右傾斜，不高於頭
+                dummyLightTick.rotation.set(0.1, 0, -0.15 + waveAngle);
                 dummyLightTick.updateMatrix();
                 
                 audienceLightsMesh.setMatrixAt(i, dummyLightTick.matrix);
