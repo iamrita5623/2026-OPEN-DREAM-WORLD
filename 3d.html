@@ -9,10 +9,11 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            position: fixed; /* 徹底封鎖 iOS Safari 滾動位移 */
             background-color: #060810;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #fff;
@@ -22,8 +23,8 @@
 
         #viewport {
             width: 100vw;
-            height: 100vh;
-            position: absolute;
+            height: 100dvh;
+            position: fixed;
             top: 0;
             left: 0;
             touch-action: none;
@@ -33,12 +34,12 @@
         #viewport:active { cursor: grabbing; }
         #canvas3d { width: 100%; height: 100%; display: block; }
 
-        /* 左上角極簡懸浮標籤 */
+        /* 左上角懸浮膠囊 (避開 iPhone 瀏海與動態島) */
         .hud-overlay {
-            position: absolute;
+            position: fixed;
             top: calc(env(safe-area-inset-top, 24px) + 12px);
             left: 16px;
-            background: rgba(13, 17, 36, 0.75);
+            background: rgba(13, 17, 36, 0.78);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             padding: 7px 16px;
@@ -48,14 +49,14 @@
             color: #e6ebf5;
             border: 1px solid rgba(255, 255, 255, 0.18);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-            z-index: 10;
+            z-index: 30;
             cursor: pointer;
         }
         .hud-overlay:active { transform: scale(0.96); }
 
         /* 右下角懸浮按鈕組 */
         .fov-toggle {
-            position: absolute;
+            position: fixed;
             bottom: 120px;
             right: 16px;
             display: flex;
@@ -84,13 +85,13 @@
             box-shadow: 0 0 12px rgba(35, 182, 175, 0.6);
         }
 
-        /* 底部抽屜 (修復底層黑區與邊緣高度) */
+        /* 底部抽屜 (改為 fixed 鎖死在螢幕底部) */
         .bottom-sheet {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             width: 100vw;
-            max-height: 68vh;
+            max-height: 68dvh;
             background: rgba(19, 23, 43, 0.96);
             backdrop-filter: blur(28px);
             -webkit-backdrop-filter: blur(28px);
@@ -101,7 +102,6 @@
             display: flex;
             flex-direction: column;
             touch-action: none;
-            /* 預設收合高度：剛好露出把手與警示條 (約 104px) */
             transform: translateY(calc(100% - 104px));
         }
 
@@ -338,7 +338,7 @@
     let startY = 0;
     let dragDistance = 0;
     let currentTranslateY = 0;
-    const collapsedPeek = 104; // 露出高度
+    const collapsedPeek = 104;
 
     function initBottomSheetGestures() {
         function getSheetMaxTranslate() {
@@ -400,6 +400,16 @@
         handle.addEventListener('mousedown', onTouchStart);
         window.addEventListener('mousemove', onTouchMove);
         window.addEventListener('mouseup', onTouchEnd);
+
+        // 【關鍵修復】：防止鍵盤收起時畫面位移卡住
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('blur', () => {
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0;
+                }, 100);
+            });
+        });
     }
 
     function toggleBottomSheet(e) {
@@ -669,7 +679,6 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與【真實隨機感・自然斜握】湖水綠應援手燈群
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -688,7 +697,6 @@
 
         if (totalAudience <= 0) return;
 
-        // 頭部與身體
         const headGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x221a15, roughness: 0.7 });
         audienceHeadMesh = new THREE.InstancedMesh(headGeo, hairMat, totalAudience);
@@ -697,7 +705,7 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 湖水綠手燈 (適度縮小為 16cm，發光色更具立體通透感)
+        // 湖水綠手燈
         const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
@@ -713,21 +721,18 @@
             for (let s = minS; s <= maxS; s++) {
                 const coords = calculateCoordinates(r, s, layout);
                 
-                // 坐姿頭部
                 dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
                 dummyHead.updateMatrix();
                 audienceHeadMesh.setMatrixAt(idx, dummyHead.matrix);
 
-                // 坐姿身體
                 dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 自然手燈配置：約 50% 的觀眾隨機拿手燈 (不再是每個人死板整齊立著)
+                // 約 50% 隨機拿手燈
                 const hasLight = ( (r * 7 + s * 13) % 10 < 5 ); 
 
                 if (hasLight) {
-                    // 斜握在右胸前與肩膀側下方 (y + 0.82m)，自然往前傾斜 20°
                     const lx = coords.x + 0.14 + Math.sin(s * 0.5) * 0.03;
                     const ly = coords.y + 0.80 + Math.cos(r * 0.8) * 0.04;
                     const lz = coords.z - 0.14;
@@ -745,7 +750,6 @@
                     dummyLight.rotation.set(0.3, 0.1, -0.25);
                     dummyLight.scale.set(1, 1, 1);
                 } else {
-                    // 不拿手燈的觀眾將該 instance 隱藏至地下
                     dummyLight.position.set(0, -99, 0);
                     dummyLight.scale.set(0, 0, 0);
                 }
@@ -832,7 +836,6 @@
             screenCtx.fillStyle = 'rgba(216, 61, 137, 0.28)';
             screenCtx.fill();
 
-            // 偶像上半身特寫
             screenCtx.fillStyle = '#ffdfd0';
             screenCtx.beginPath();
             screenCtx.arc(320, 150 + Math.sin(time * 2) * 4, 45, 0, Math.PI * 2);
@@ -978,6 +981,10 @@
             sheet.style.transform = `translateY(${maxTranslate}px)`;
             toggleText.innerText = '展開選位 ▲';
         }
+
+        // 確保手機滾動位置絕對歸零
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
     }
 
     function setFOV(fovVal) {
@@ -1018,7 +1025,6 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 自然錯落左右輕晃 (不生硬齊步搖動)
         if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
             for (let i = 0; i < lightstickLocalPositions.length; i++) {
                 const item = lightstickLocalPositions[i];
