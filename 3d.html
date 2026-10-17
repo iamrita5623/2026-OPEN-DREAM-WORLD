@@ -33,24 +33,25 @@
         #viewport:active { cursor: grabbing; }
         #canvas3d { width: 100%; height: 100%; display: block; }
 
-        /* 左上角極簡懸浮標籤 */
+        /* 左上角極簡懸浮標籤 (完美避開 iPhone 狀態列/動態島) */
         .hud-overlay {
             position: absolute;
-            top: 16px;
+            top: calc(env(safe-area-inset-top, 24px) + 14px);
             left: 16px;
-            background: rgba(13, 17, 36, 0.72);
+            background: rgba(13, 17, 36, 0.78);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 7px 16px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
             color: #e6ebf5;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+            z-index: 15;
             pointer-events: auto;
             cursor: pointer;
+            transition: transform 0.15s ease;
         }
         .hud-overlay:active { transform: scale(0.96); }
 
@@ -235,8 +236,9 @@
         <canvas id="canvas3d"></canvas>
     </div>
 
+    <!-- 左上角極簡懸浮標籤 (預設 11 排 75 號，並自動避開瀏海/時間) -->
     <div class="hud-overlay" id="hudInfo" onclick="toggleBottomSheet()">
-        <span id="hudBrief">📍 第 2 排 20 號 · 超級搖滾區</span>
+        <span id="hudBrief">📍 第 11 排 75 號 · 超級搖滾區</span>
     </div>
 
     <!-- 右下角懸浮按鈕組 -->
@@ -247,7 +249,7 @@
         <button class="fov-btn" onclick="resetToOverview()">全場</button>
     </div>
 
-    <!-- 底部抽屜 (支援拖曳 + 點擊) -->
+    <!-- 底部抽屜 -->
     <div class="bottom-sheet animating" id="bottomSheet">
         <div class="sheet-header" id="sheetHandle">
             <div class="sheet-pill-bar"></div>
@@ -256,7 +258,6 @@
                     <span>OPEN! 夢想音樂節</span>
                     <span style="font-size:11px;color:#8792b8;font-weight:normal;">12/4 - 12/5 高雄</span>
                 </div>
-                <!-- 改為可點擊展開/收合的按鈕 -->
                 <div class="sheet-toggle-btn" id="sheetToggleText" onclick="toggleBottomSheet(event)">展開選位 ▲</div>
             </div>
         </div>
@@ -297,8 +298,9 @@
             <div class="input-group">
                 <label>查詢座位</label>
                 <div>
-                    第 <input type="number" id="rowA" value="2" min="1" max="43"> 排
-                    <input type="number" id="seatA" value="20" min="1" max="108"> 號
+                    <!-- 預設改為第 11 排 75 號 -->
+                    第 <input type="number" id="rowA" value="11" min="1" max="43"> 排
+                    <input type="number" id="seatA" value="75" min="1" max="108"> 號
                 </div>
             </div>
 
@@ -378,14 +380,13 @@
             sheet.style.transform = `translateY(${currentTranslateY}px)`;
         }
 
-        function onTouchEnd(e) {
+        function onTouchEnd() {
             if (!isDragging) return;
             isDragging = false;
             sheet.classList.add('animating');
 
             const maxTranslate = getSheetMaxTranslate();
 
-            // 若拖動距離極小，視為點擊手勢，直接觸發切換
             if (dragDistance < 6) {
                 toggleBottomSheet();
                 return;
@@ -416,7 +417,6 @@
         const style = window.getComputedStyle(sheet);
         const matrix = new WebKitCSSMatrix(style.transform);
 
-        // 如果目前是收起狀態（偏下方），則點擊後直接展開
         if (matrix.m42 > maxTranslate * 0.5) {
             sheet.style.transform = `translateY(0px)`;
             toggleText.innerText = '收起選位 ▼';
@@ -499,8 +499,6 @@
 
         window.addEventListener('resize', onWindowResize);
         animate(0);
-
-        applySeatView(false);
     }
 
     function buildEnvironment() {
@@ -679,7 +677,7 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與【肩膀齊平・清晰可見・左右輕晃】湖水綠手燈
+    // 前方觀眾與【肩膀齊平・清晰可見・微幅左右輕擺】湖水綠手燈
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -698,7 +696,6 @@
 
         if (totalAudience <= 0) return;
 
-        // 頭部與身體
         const headGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x221a15, roughness: 0.7 });
         audienceHeadMesh = new THREE.InstancedMesh(headGeo, hairMat, totalAudience);
@@ -707,7 +704,7 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 湖水綠手燈：長度 20cm，比例自然
+        // 湖水綠手燈 (#23b6af)
         const lightGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.20, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
@@ -731,7 +728,7 @@
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 【精確校正高度】：剛好位於肩膀旁 (y + 0.88m)，略低於頭頂 (0.96m)，清晰可見且不遮視野
+                // 肩膀高度 (y + 0.88m)，清晰可見且不遮擋舞台視野
                 const lx = coords.x + 0.17;
                 const ly = coords.y + 0.88;
                 const lz = coords.z - 0.12;
@@ -739,7 +736,7 @@
                 lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: Math.sin(idx * 0.7) });
 
                 dummyLight.position.set(lx, ly, lz);
-                dummyLight.rotation.set(0.12, 0, -0.2); // 自然前傾手勢
+                dummyLight.rotation.set(0.12, 0, -0.2);
                 dummyLight.updateMatrix();
                 audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
 
@@ -1006,7 +1003,7 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 手燈在肩膀齊平高度原位微幅左右輕擺 (±0.12 弧度)
+        // 手燈在肩膀高度原位微幅左右輕擺 (±0.12 弧度)
         if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
             for (let i = 0; i < lightstickLocalPositions.length; i++) {
                 const pos = lightstickLocalPositions[i];
@@ -1029,6 +1026,8 @@
 
     window.onload = () => {
         init3D();
+        // 進入網頁時，直接以預設的第 11 排 75 號進場並對齊偶像
+        applySeatView(false);
     };
 </script>
 </body>
