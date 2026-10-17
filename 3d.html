@@ -75,15 +75,9 @@
             font-size: 12px;
             font-weight: bold;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
         }
         .fov-btn:active { transform: scale(0.92); background: #2f3a6e; }
-        .fov-btn.lightstick-active { 
-            background: #23b6af !important; 
-            border-color: #55ebd7 !important; 
-            color: #061f1d !important;
-            box-shadow: 0 0 12px rgba(35, 182, 175, 0.6);
-        }
 
         /* 底部抽屜 */
         .bottom-sheet {
@@ -237,13 +231,15 @@
         <span id="hudBrief">📍 第 11 排 75 號 · 超級搖滾區</span>
     </div>
 
+    <!-- 右下角手燈支援真實雙色/漸層輪播切換 -->
     <div class="fov-toggle">
-        <button class="fov-btn lightstick-active" id="lightstickBtn" onclick="toggleLightsticks()">✨ 手燈</button>
+        <button class="fov-btn" id="lightstickBtn" onclick="cycleLightstickArtist()">✨ KEY</button>
         <button class="fov-btn" onclick="setFOV(65)">1×</button>
         <button class="fov-btn" onclick="setFOV(95)">0.5×</button>
         <button class="fov-btn" onclick="resetToOverview()">全場</button>
     </div>
 
+    <!-- 底部抽屜 -->
     <div class="bottom-sheet animating" id="bottomSheet">
         <div class="sheet-header" id="sheetHandle">
             <div class="sheet-pill-bar"></div>
@@ -309,6 +305,7 @@
     let audienceHeadMesh = null;
     let audienceBodyMesh = null;
     let audienceLightsMesh = null;
+    let lightstickMaterial = null;
 
     let lightstickLocalPositions = [];
 
@@ -327,8 +324,123 @@
     let previousPointerY = 0;
     let cameraFixedPos = new THREE.Vector3(0, 22, 52);
 
-    let showLightsticks = true;
+    // =========================================================================
+    // 【真實手燈漸層/雙色配置庫】
+    // =========================================================================
+    const ARTIST_LIGHTSTICKS = [
+        { 
+            name: "KEY", 
+            text: "✨ KEY ", 
+            gradient: ['#55ebd7', '#23b6af'], // 鑽石亮綠 -> 經典湖水綠
+            btnBg: "linear-gradient(135deg, #55ebd7, #23b6af)",
+            btnColor: "#052220"
+        },
+        { 
+            name: "NAYEON", 
+            text: "✨ NAYEON ", 
+            gradient: ['#ff1493', '#ffa07a'], // 洋紅霓虹 -> 杏桃橙
+            btnBg: "linear-gradient(135deg, #ff1493, #ffa07a)",
+            btnColor: "#ffffff"
+        },
+        { 
+            name: "WINNER", 
+            text: "✨ WINNER ", 
+            gradient: ['#4299e1', '#005bac'], // 亮藍 -> 深星雲藍
+            btnBg: "linear-gradient(135deg, #4299e1, #005bac)",
+            btnColor: "#ffffff"
+        },
+        { 
+            name: "HWASA", 
+            text: "✨ HWASA ", 
+            // 蘿蔔綠葉 -> 亮白發光體 -> 暖黃
+            gradient: ['#38a169', '#ffffff', '#ecc94b'], 
+            btnBg: "linear-gradient(135deg, #38a169 35%, #ecc94b 100%)",
+            btnColor: "#ffffff"
+        },
+        { 
+            name: "FEniX", 
+            text: "✨ FEniX ", 
+            gradient: ['#f6e05e', '#e53e3e'], // 金焰 -> 烈紅
+            btnBg: "linear-gradient(135deg, #f6e05e, #e53e3e)",
+            btnColor: "#2d0b00"
+        },
+        { 
+            name: "U:NUS", 
+            text: "✨ U:NUS ", 
+            gradient: ['#ffffff', '#cbd5e0'], // 純白 -> 銀灰
+            btnBg: "linear-gradient(135deg, #ffffff, #cbd5e0)",
+            btnColor: "#1a202c"
+        },
+        { 
+            name: "OFF", 
+            text: "🌑 手燈關閉", 
+            gradient: null,
+            btnBg: "",
+            btnColor: ""
+        }
+    ];
+    let currentArtistIdx = 0;
 
+    // 動態產生手燈垂直漸層貼圖 (Canvas Texture)
+    function generateGradientTexture(colors) {
+        const c = document.createElement('canvas');
+        c.width = 16;
+        c.height = 128;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 128);
+
+        if (colors.length === 2) {
+            grad.addColorStop(0.0, colors[0]); // 頂端
+            grad.addColorStop(1.0, colors[1]); // 底端
+        } else if (colors.length === 3) {
+            grad.addColorStop(0.0, colors[0]); // 頂端 (如蘿蔔綠葉)
+            grad.addColorStop(0.4, colors[1]); // 中間 (白光)
+            grad.addColorStop(1.0, colors[2]); // 底端 (黃色根身)
+        }
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 16, 128);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    function cycleLightstickArtist() {
+        currentArtistIdx = (currentArtistIdx + 1) % ARTIST_LIGHTSTICKS.length;
+        applyLightstickArtist();
+    }
+
+    function applyLightstickArtist() {
+        const artist = ARTIST_LIGHTSTICKS[currentArtistIdx];
+        const btn = document.getElementById('lightstickBtn');
+        btn.innerText = artist.text;
+
+        if (artist.name === "OFF") {
+            btn.style.background = "";
+            btn.style.color = "";
+            btn.style.boxShadow = "";
+            btn.style.borderColor = "";
+            if (audienceLightsMesh) scene.remove(audienceLightsMesh);
+        } else {
+            btn.style.background = artist.btnBg;
+            btn.style.color = artist.btnColor;
+            btn.style.boxShadow = "0 0 16px rgba(255, 255, 255, 0.4)";
+            btn.style.borderColor = "#ffffff";
+
+            if (lightstickMaterial) {
+                const tex = generateGradientTexture(artist.gradient);
+                lightstickMaterial.map = tex;
+                lightstickMaterial.color.setHex(0xffffff); // 讓貼圖真實發色
+                lightstickMaterial.needsUpdate = true;
+            }
+            if (audienceLightsMesh && !scene.children.includes(audienceLightsMesh)) {
+                scene.add(audienceLightsMesh);
+            }
+        }
+    }
+
+    // 抽屜控制常數
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -426,19 +538,15 @@
         }
     }
 
-    // =========================================================================
-    // 【核心修復】：在 54 號與 55 號之間加入寬度充足的「中央走道」
-    // =========================================================================
     function calculateCoordinates(r, s, layout) {
         let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
         
         let z = 5.0 + (r - 1) * 0.85;
         if (r > 10) z += 1.6;
         if (r > 20) z += 1.6;
-        if (r > 24) z += 3.2; // 橫向跨區走道
+        if (r > 24) z += 3.2;
         if (r > 34) z += 1.6;
 
-        // 54 號與 55 號中央走道半寬 (走道總寬度 = 0.85 * 2 = 1.7m)
         const centerAisleHalfWidth = 0.85;
 
         let x = 0;
@@ -707,6 +815,7 @@
 
         if (totalAudience <= 0) return;
 
+        // 頭部與身體
         const headGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x221a15, roughness: 0.7 });
         audienceHeadMesh = new THREE.InstancedMesh(headGeo, hairMat, totalAudience);
@@ -715,10 +824,12 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 湖水綠手燈
+        // 漸層手燈材質初始化
         const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8);
-        const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
-        audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
+        const activeArtist = ARTIST_LIGHTSTICKS[currentArtistIdx];
+        const tex = generateGradientTexture(activeArtist.gradient || ['#55ebd7', '#23b6af']);
+        lightstickMaterial = new THREE.MeshBasicMaterial({ map: tex }); 
+        audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightstickMaterial, totalAudience);
 
         const dummyHead = new THREE.Object3D();
         const dummyBody = new THREE.Object3D();
@@ -778,20 +889,8 @@
         scene.add(audienceHeadMesh);
         scene.add(audienceBodyMesh);
         
-        if (showLightsticks) {
+        if (ARTIST_LIGHTSTICKS[currentArtistIdx].name !== "OFF") {
             scene.add(audienceLightsMesh);
-        }
-    }
-
-    function toggleLightsticks() {
-        showLightsticks = !showLightsticks;
-        const btn = document.getElementById('lightstickBtn');
-        if (showLightsticks) {
-            btn.classList.add('lightstick-active');
-            if (audienceLightsMesh) scene.add(audienceLightsMesh);
-        } else {
-            btn.classList.remove('lightstick-active');
-            if (audienceLightsMesh) scene.remove(audienceLightsMesh);
         }
     }
 
@@ -1033,7 +1132,7 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
+        if (audienceLightsMesh && ARTIST_LIGHTSTICKS[currentArtistIdx].name !== "OFF" && lightstickLocalPositions.length > 0) {
             for (let i = 0; i < lightstickLocalPositions.length; i++) {
                 const item = lightstickLocalPositions[i];
                 const waveAngle = Math.sin(time * 2.4 + item.offset) * 0.12;
@@ -1055,7 +1154,8 @@
 
     window.onload = () => {
         init3D();
-        applySeatView(false);
+        applyLightstickArtist(); // 載入預設 KEY 漸層湖水綠手燈
+        applySeatView(false);    // 載入預設 11 排 75 號
     };
 </script>
 </body>
