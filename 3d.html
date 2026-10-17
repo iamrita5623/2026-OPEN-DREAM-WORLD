@@ -226,7 +226,7 @@
         <canvas id="canvas3d"></canvas>
     </div>
 
-    <!-- 左上角懸浮膠囊 -->
+    <!-- 左上角預設 11 排 75 號 -->
     <div class="hud-overlay" id="hudInfo" onclick="toggleBottomSheet()">
         <span id="hudBrief">📍 第 11 排 75 號 · 超級搖滾區</span>
     </div>
@@ -348,7 +348,7 @@
         },
         { 
             name: "HWASA", 
-            text: "✨ 華莎 ", 
+            text: "✨ HWASA", 
             gradient: ['#38a169', '#ffffff', '#ecc94b'], 
             btnBg: "linear-gradient(135deg, #38a169 35%, #ecc94b 100%)",
             btnColor: "#ffffff"
@@ -792,7 +792,7 @@
     }
 
     // =========================================================================
-    // 【前方觀眾 + 同排左右鄰座觀眾 + 88% 高持有率手燈】
+    // 【核心修復：左右手隨機交替持燈（50% 機率）+ 向前伸，徹底解決右側遮擋】
     // =========================================================================
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
@@ -803,19 +803,18 @@
         audienceLightsMesh = null;
         lightstickLocalPositions = [];
 
-        // 收集需要生成的座位清單 (前方觀眾 + 當前排左右鄰座)
         const audienceSeats = [];
         const minS = Math.max(15, currentS - 14);
         const maxS = Math.min(94, currentS + 14);
 
-        // 1. 前方排的所有觀眾
+        // 1. 前方排觀眾
         for (let r = 1; r < currentR; r++) {
             for (let s = minS; s <= maxS; s++) {
                 audienceSeats.push({ r, s, isSideNeighbor: false });
             }
         }
 
-        // 2. 當前排的左右鄰座同伴 (排除自己坐的座位 currentS)
+        // 2. 當前排左右鄰座同伴 (排除自己坐的座位)
         const sideOffsets = [-2, -1, 1, 2];
         for (let offset of sideOffsets) {
             const sideS = currentS + offset;
@@ -827,7 +826,6 @@
         const totalAudience = audienceSeats.length;
         if (totalAudience <= 0) return;
 
-        // 頭部與身體
         const headGeo = new THREE.SphereGeometry(0.08, 12, 12);
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x221a15, roughness: 0.7 });
         audienceHeadMesh = new THREE.InstancedMesh(headGeo, hairMat, totalAudience);
@@ -836,7 +834,6 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 漸層手燈
         const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8);
         const activeArtist = ARTIST_LIGHTSTICKS[currentArtistIdx];
         const tex = generateGradientTexture(activeArtist.gradient || ['#55ebd7', '#23b6af']);
@@ -853,26 +850,33 @@
             const item = audienceSeats[i];
             const coords = calculateCoordinates(item.r, item.s, layout);
             
-            // 頭部 (y + 0.96m)
+            // 頭部
             dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
             dummyHead.updateMatrix();
             audienceHeadMesh.setMatrixAt(i, dummyHead.matrix);
 
-            // 身體 (y + 0.68m)
+            // 身體
             dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
             dummyBody.updateMatrix();
             audienceBodyMesh.setMatrixAt(i, dummyBody.matrix);
 
-            // 【手燈持有率提高至 88%】：同排鄰居與正前方必定拿手燈，絕不出現大片空缺
+            // 高手燈持有率 88%
             let hasLight = true;
             if (!item.isSideNeighbor && (item.r < currentR - 1)) {
-                hasLight = ((item.r * 7 + item.s * 13) % 10) !== 0; // 約 90%
+                hasLight = ((item.r * 7 + item.s * 13) % 10) !== 0;
             }
 
             if (hasLight) {
-                const lx = coords.x + 0.14 + Math.sin(item.s * 0.5) * 0.02;
-                const ly = coords.y + 0.80 + Math.cos(item.r * 0.8) * 0.03;
-                const lz = coords.z - 0.14;
+                // 【核心修改】：50% 用左手持燈、50% 用右手持燈
+                // 當坐在左半區往右前方斜看時，右側人若是左手持燈 (isLeftHand)，手燈便直接露在左側，不再被身體擋住！
+                const isLeftHand = ((item.r + item.s) % 2 === 0);
+                const handOffsetX = isLeftHand ? -0.16 : 0.16;
+                const rotZBase = isLeftHand ? 0.25 : -0.25;
+
+                // 往前微伸 (z - 0.18)，確保側看時絕不被後背或肩膀擋住
+                const lx = coords.x + handOffsetX + Math.sin(item.s * 0.5) * 0.02;
+                const ly = coords.y + 0.82 + Math.cos(item.r * 0.8) * 0.03;
+                const lz = coords.z - 0.18;
 
                 lightstickLocalPositions.push({ 
                     index: lightIdx,
@@ -880,11 +884,11 @@
                     y: ly, 
                     z: lz, 
                     offset: (item.r * 1.5 + item.s * 0.8),
-                    baseRotZ: -0.25 + (Math.sin(item.s) * 0.08)
+                    baseRotZ: rotZBase + (Math.sin(item.s) * 0.08)
                 });
 
                 dummyLight.position.set(lx, ly, lz);
-                dummyLight.rotation.set(0.3, 0.1, -0.25);
+                dummyLight.rotation.set(0.3, 0.1, rotZBase);
                 dummyLight.scale.set(1, 1, 1);
             } else {
                 dummyLight.position.set(0, -99, 0);
@@ -1080,7 +1084,6 @@
         currentYaw = targetYaw;
         currentPitch = targetPitch;
 
-        // 生成前方與同排鄰座觀眾
         updateFrontAudience(r, s, layout);
 
         document.getElementById('hudBrief').innerHTML = `📍 第 ${r} 排 ${s} 號 · ${stats.zoneName.split(' ')[0]} ｜ ${stats.distance.toFixed(1)}m`;
