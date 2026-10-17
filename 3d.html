@@ -85,7 +85,7 @@
             box-shadow: 0 0 12px rgba(35, 182, 175, 0.6);
         }
 
-        /* 底部抽屜 (可隨手指上下拖拉) */
+        /* 底部抽屜 (支援拖曳 + 點擊) */
         .bottom-sheet {
             position: absolute;
             bottom: 0;
@@ -115,7 +115,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            cursor: grab;
+            cursor: pointer;
             padding: 0 20px;
             flex-shrink: 0;
             touch-action: none;
@@ -143,11 +143,17 @@
         }
         .sheet-toggle-btn {
             font-size: 12px;
-            color: #d83d89;
-            background: rgba(216, 61, 137, 0.15);
-            padding: 5px 12px;
-            border-radius: 12px;
+            color: #fff;
+            background: linear-gradient(90deg, #d83d89, #6c2d8e);
+            padding: 6px 14px;
+            border-radius: 14px;
             font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(216, 61, 137, 0.3);
+            transition: transform 0.15s ease;
+        }
+        .sheet-toggle-btn:active {
+            transform: scale(0.92);
         }
 
         .sheet-body {
@@ -241,7 +247,7 @@
         <button class="fov-btn" onclick="resetToOverview()">全場</button>
     </div>
 
-    <!-- 底部抽屜 -->
+    <!-- 底部抽屜 (支援拖曳 + 點擊) -->
     <div class="bottom-sheet animating" id="bottomSheet">
         <div class="sheet-header" id="sheetHandle">
             <div class="sheet-pill-bar"></div>
@@ -250,7 +256,8 @@
                     <span>OPEN! 夢想音樂節</span>
                     <span style="font-size:11px;color:#8792b8;font-weight:normal;">12/4 - 12/5 高雄</span>
                 </div>
-                <div class="sheet-toggle-btn" id="sheetToggleText">往上拉展開 ▲</div>
+                <!-- 改為可點擊展開/收合的按鈕 -->
+                <div class="sheet-toggle-btn" id="sheetToggleText" onclick="toggleBottomSheet(event)">展開選位 ▲</div>
             </div>
         </div>
 
@@ -328,13 +335,14 @@
 
     let showLightsticks = true;
 
-    // 抽屜手勢控制
+    // 手指拖曳抽屜手勢
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
     
     let isDragging = false;
     let startY = 0;
+    let dragDistance = 0;
     let currentTranslateY = 0;
     const collapsedPeek = 68;
 
@@ -345,6 +353,7 @@
 
         function onTouchStart(e) {
             isDragging = true;
+            dragDistance = 0;
             sheet.classList.remove('animating');
             startY = e.touches ? e.touches[0].clientY : e.clientY;
             
@@ -355,8 +364,9 @@
 
         function onTouchMove(e) {
             if (!isDragging) return;
-            const y = e.touches ? e.touches[0] : e.clientY;
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
             const deltaY = y - startY;
+            dragDistance += Math.abs(deltaY);
             startY = y;
 
             currentTranslateY += deltaY;
@@ -368,18 +378,25 @@
             sheet.style.transform = `translateY(${currentTranslateY}px)`;
         }
 
-        function onTouchEnd() {
+        function onTouchEnd(e) {
             if (!isDragging) return;
             isDragging = false;
             sheet.classList.add('animating');
 
             const maxTranslate = getSheetMaxTranslate();
+
+            // 若拖動距離極小，視為點擊手勢，直接觸發切換
+            if (dragDistance < 6) {
+                toggleBottomSheet();
+                return;
+            }
+
             if (currentTranslateY < maxTranslate * 0.6) {
                 sheet.style.transform = `translateY(0px)`;
-                toggleText.innerText = '往下拉收起 ▼';
+                toggleText.innerText = '收起選位 ▼';
             } else {
                 sheet.style.transform = `translateY(${maxTranslate}px)`;
-                toggleText.innerText = '往上拉展開 ▲';
+                toggleText.innerText = '展開選位 ▲';
             }
         }
 
@@ -392,18 +409,20 @@
         window.addEventListener('mouseup', onTouchEnd);
     }
 
-    function toggleBottomSheet() {
+    function toggleBottomSheet(e) {
+        if (e) e.stopPropagation();
         sheet.classList.add('animating');
         const maxTranslate = sheet.offsetHeight - collapsedPeek;
         const style = window.getComputedStyle(sheet);
         const matrix = new WebKitCSSMatrix(style.transform);
 
+        // 如果目前是收起狀態（偏下方），則點擊後直接展開
         if (matrix.m42 > maxTranslate * 0.5) {
             sheet.style.transform = `translateY(0px)`;
-            toggleText.innerText = '往下拉收起 ▼';
+            toggleText.innerText = '收起選位 ▼';
         } else {
             sheet.style.transform = `translateY(${maxTranslate}px)`;
-            toggleText.innerText = '往上拉展開 ▲';
+            toggleText.innerText = '展開選位 ▲';
         }
     }
 
@@ -660,7 +679,7 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與【校正至肩膀高度・清晰可見不擋舞台】湖水綠手燈
+    // 前方觀眾與【肩膀齊平・清晰可見・左右輕晃】湖水綠手燈
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -688,8 +707,8 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 湖水綠手燈棒身 (長約 22cm，適中手持手燈比例)
-        const lightGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.22, 8);
+        // 湖水綠手燈：長度 20cm，比例自然
+        const lightGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.20, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
 
@@ -712,18 +731,15 @@
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // ========================================================
-                // 【核心位置校正】：精確移至右肩膀高度 (y + 0.88m)
-                // 位於肩膀右側偏外 (x + 0.22m)，剛好在前排頭部與肩膀側邊空檔，清楚可見！
-                // ========================================================
-                const lx = coords.x + 0.22;
+                // 【精確校正高度】：剛好位於肩膀旁 (y + 0.88m)，略低於頭頂 (0.96m)，清晰可見且不遮視野
+                const lx = coords.x + 0.17;
                 const ly = coords.y + 0.88;
                 const lz = coords.z - 0.12;
 
-                lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: (s * 0.4) + (r * 0.8) });
+                lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: Math.sin(idx * 0.7) });
 
                 dummyLight.position.set(lx, ly, lz);
-                dummyLight.rotation.set(0.1, 0, -0.15); // 手持略微向外斜傾
+                dummyLight.rotation.set(0.12, 0, -0.2); // 自然前傾手勢
                 dummyLight.updateMatrix();
                 audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
 
@@ -805,7 +821,6 @@
             screenCtx.fillStyle = 'rgba(216, 61, 137, 0.28)';
             screenCtx.fill();
 
-            // 偶像上半身特寫
             screenCtx.fillStyle = '#ffdfd0';
             screenCtx.beginPath();
             screenCtx.arc(320, 150 + Math.sin(time * 2) * 4, 45, 0, Math.PI * 2);
@@ -949,7 +964,7 @@
             sheet.classList.add('animating');
             const maxTranslate = sheet.offsetHeight - collapsedPeek;
             sheet.style.transform = `translateY(${maxTranslate}px)`;
-            toggleText.innerText = '往上拉展開 ▲';
+            toggleText.innerText = '展開選位 ▲';
         }
     }
 
@@ -979,7 +994,6 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // 核心渲染動畫：手燈在右肩位置「原位微幅左右輕擺」
     const dummyLightTick = new THREE.Object3D();
 
     function animate(currentTime) {
@@ -992,14 +1006,14 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 手燈在右肩原位輕微左右擺動 (僅微幅 ±0.1 弧度，約 5~6 度)
+        // 手燈在肩膀齊平高度原位微幅左右輕擺 (±0.12 弧度)
         if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
             for (let i = 0; i < lightstickLocalPositions.length; i++) {
                 const pos = lightstickLocalPositions[i];
-                const waveAngle = Math.sin(time * 2.6 + pos.offset) * 0.11;
+                const waveAngle = Math.sin(time * 2.6 + pos.offset) * 0.12;
                 
                 dummyLightTick.position.set(pos.x, pos.y, pos.z);
-                dummyLightTick.rotation.set(0.1, 0, -0.15 + waveAngle);
+                dummyLightTick.rotation.set(0.12, 0, -0.15 + waveAngle);
                 dummyLightTick.updateMatrix();
                 
                 audienceLightsMesh.setMatrixAt(i, dummyLightTick.matrix);
