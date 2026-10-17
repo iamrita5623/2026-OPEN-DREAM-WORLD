@@ -226,12 +226,12 @@
         <canvas id="canvas3d"></canvas>
     </div>
 
-    <!-- 左上角預設 11 排 75 號 -->
+    <!-- 左上角懸浮膠囊 -->
     <div class="hud-overlay" id="hudInfo" onclick="toggleBottomSheet()">
         <span id="hudBrief">📍 第 11 排 75 號 · 超級搖滾區</span>
     </div>
 
-    <!-- 右下角手燈支援真實雙色/漸層輪播切換 -->
+    <!-- 右下角手燈按鈕 -->
     <div class="fov-toggle">
         <button class="fov-btn" id="lightstickBtn" onclick="cycleLightstickArtist()">✨ KEY</button>
         <button class="fov-btn" onclick="setFOV(65)">1×</button>
@@ -324,35 +324,31 @@
     let previousPointerY = 0;
     let cameraFixedPos = new THREE.Vector3(0, 22, 52);
 
-    // =========================================================================
-    // 【真實手燈漸層/雙色配置庫】
-    // =========================================================================
     const ARTIST_LIGHTSTICKS = [
         { 
             name: "KEY", 
             text: "✨ KEY (湖水綠)", 
-            gradient: ['#55ebd7', '#23b6af'], // 鑽石亮綠 -> 經典湖水綠
+            gradient: ['#55ebd7', '#23b6af'], 
             btnBg: "linear-gradient(135deg, #55ebd7, #23b6af)",
             btnColor: "#052220"
         },
         { 
             name: "NAYEON", 
             text: "✨ TWICE (杏桃/洋紅漸層)", 
-            gradient: ['#ff1493', '#ffa07a'], // 洋紅霓虹 -> 杏桃橙
+            gradient: ['#ff1493', '#ffa07a'], 
             btnBg: "linear-gradient(135deg, #ff1493, #ffa07a)",
             btnColor: "#ffffff"
         },
         { 
             name: "WINNER", 
             text: "✨ WINNER (星雲藍)", 
-            gradient: ['#4299e1', '#005bac'], // 亮藍 -> 深星雲藍
+            gradient: ['#4299e1', '#005bac'], 
             btnBg: "linear-gradient(135deg, #4299e1, #005bac)",
             btnColor: "#ffffff"
         },
         { 
             name: "HWASA", 
             text: "✨ 華莎 (木木蘿蔔燈)", 
-            // 蘿蔔綠葉 -> 亮白發光體 -> 暖黃
             gradient: ['#38a169', '#ffffff', '#ecc94b'], 
             btnBg: "linear-gradient(135deg, #38a169 35%, #ecc94b 100%)",
             btnColor: "#ffffff"
@@ -360,14 +356,14 @@
         { 
             name: "FEniX", 
             text: "✨ FEniX (火鳳紅焰)", 
-            gradient: ['#f6e05e', '#e53e3e'], // 金焰 -> 烈紅
+            gradient: ['#f6e05e', '#e53e3e'], 
             btnBg: "linear-gradient(135deg, #f6e05e, #e53e3e)",
             btnColor: "#2d0b00"
         },
         { 
             name: "U:NUS", 
             text: "✨ U:NUS (星芒銀白)", 
-            gradient: ['#ffffff', '#cbd5e0'], // 純白 -> 銀灰
+            gradient: ['#ffffff', '#cbd5e0'], 
             btnBg: "linear-gradient(135deg, #ffffff, #cbd5e0)",
             btnColor: "#1a202c"
         },
@@ -381,7 +377,6 @@
     ];
     let currentArtistIdx = 0;
 
-    // 動態產生手燈垂直漸層貼圖 (Canvas Texture)
     function generateGradientTexture(colors) {
         const c = document.createElement('canvas');
         c.width = 16;
@@ -390,12 +385,12 @@
         const grad = ctx.createLinearGradient(0, 0, 0, 128);
 
         if (colors.length === 2) {
-            grad.addColorStop(0.0, colors[0]); // 頂端
-            grad.addColorStop(1.0, colors[1]); // 底端
+            grad.addColorStop(0.0, colors[0]);
+            grad.addColorStop(1.0, colors[1]);
         } else if (colors.length === 3) {
-            grad.addColorStop(0.0, colors[0]); // 頂端 (如蘿蔔綠葉)
-            grad.addColorStop(0.4, colors[1]); // 中間 (白光)
-            grad.addColorStop(1.0, colors[2]); // 底端 (黃色根身)
+            grad.addColorStop(0.0, colors[0]);
+            grad.addColorStop(0.4, colors[1]);
+            grad.addColorStop(1.0, colors[2]);
         }
 
         ctx.fillStyle = grad;
@@ -431,7 +426,7 @@
             if (lightstickMaterial) {
                 const tex = generateGradientTexture(artist.gradient);
                 lightstickMaterial.map = tex;
-                lightstickMaterial.color.setHex(0xffffff); // 讓貼圖真實發色
+                lightstickMaterial.color.setHex(0xffffff);
                 lightstickMaterial.needsUpdate = true;
             }
             if (audienceLightsMesh && !scene.children.includes(audienceLightsMesh)) {
@@ -440,7 +435,6 @@
         }
     }
 
-    // 抽屜控制常數
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -797,6 +791,9 @@
         scene.add(seatInstancedMesh);
     }
 
+    // =========================================================================
+    // 【前方觀眾 + 同排左右鄰座觀眾 + 88% 高持有率手燈】
+    // =========================================================================
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -806,13 +803,28 @@
         audienceLightsMesh = null;
         lightstickLocalPositions = [];
 
-        if (currentR <= 1) return;
-
-        const rowsInFront = currentR - 1;
+        // 收集需要生成的座位清單 (前方觀眾 + 當前排左右鄰座)
+        const audienceSeats = [];
         const minS = Math.max(15, currentS - 14);
         const maxS = Math.min(94, currentS + 14);
-        const totalAudience = rowsInFront * (maxS - minS + 1);
 
+        // 1. 前方排的所有觀眾
+        for (let r = 1; r < currentR; r++) {
+            for (let s = minS; s <= maxS; s++) {
+                audienceSeats.push({ r, s, isSideNeighbor: false });
+            }
+        }
+
+        // 2. 當前排的左右鄰座同伴 (排除自己坐的座位 currentS)
+        const sideOffsets = [-2, -1, 1, 2];
+        for (let offset of sideOffsets) {
+            const sideS = currentS + offset;
+            if (sideS >= 15 && sideS <= 94) {
+                audienceSeats.push({ r: currentR, s: sideS, isSideNeighbor: true });
+            }
+        }
+
+        const totalAudience = audienceSeats.length;
         if (totalAudience <= 0) return;
 
         // 頭部與身體
@@ -824,7 +836,7 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 漸層手燈材質初始化
+        // 漸層手燈
         const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8);
         const activeArtist = ARTIST_LIGHTSTICKS[currentArtistIdx];
         const tex = generateGradientTexture(activeArtist.gradient || ['#55ebd7', '#23b6af']);
@@ -835,51 +847,53 @@
         const dummyBody = new THREE.Object3D();
         const dummyLight = new THREE.Object3D();
 
-        let idx = 0;
         let lightIdx = 0;
 
-        for (let r = 1; r < currentR; r++) {
-            for (let s = minS; s <= maxS; s++) {
-                const coords = calculateCoordinates(r, s, layout);
-                
-                dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
-                dummyHead.updateMatrix();
-                audienceHeadMesh.setMatrixAt(idx, dummyHead.matrix);
+        for (let i = 0; i < totalAudience; i++) {
+            const item = audienceSeats[i];
+            const coords = calculateCoordinates(item.r, item.s, layout);
+            
+            // 頭部 (y + 0.96m)
+            dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
+            dummyHead.updateMatrix();
+            audienceHeadMesh.setMatrixAt(i, dummyHead.matrix);
 
-                dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
-                dummyBody.updateMatrix();
-                audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
+            // 身體 (y + 0.68m)
+            dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
+            dummyBody.updateMatrix();
+            audienceBodyMesh.setMatrixAt(i, dummyBody.matrix);
 
-                const hasLight = ( (r * 7 + s * 13) % 10 < 5 ); 
-
-                if (hasLight) {
-                    const lx = coords.x + 0.14 + Math.sin(s * 0.5) * 0.03;
-                    const ly = coords.y + 0.80 + Math.cos(r * 0.8) * 0.04;
-                    const lz = coords.z - 0.14;
-
-                    lightstickLocalPositions.push({ 
-                        index: lightIdx,
-                        x: lx, 
-                        y: ly, 
-                        z: lz, 
-                        offset: (r * 1.5 + s * 0.8),
-                        baseRotZ: -0.25 + (Math.sin(s) * 0.1)
-                    });
-
-                    dummyLight.position.set(lx, ly, lz);
-                    dummyLight.rotation.set(0.3, 0.1, -0.25);
-                    dummyLight.scale.set(1, 1, 1);
-                } else {
-                    dummyLight.position.set(0, -99, 0);
-                    dummyLight.scale.set(0, 0, 0);
-                }
-
-                dummyLight.updateMatrix();
-                audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
-
-                idx++;
-                lightIdx++;
+            // 【手燈持有率提高至 88%】：同排鄰居與正前方必定拿手燈，絕不出現大片空缺
+            let hasLight = true;
+            if (!item.isSideNeighbor && (item.r < currentR - 1)) {
+                hasLight = ((item.r * 7 + item.s * 13) % 10) !== 0; // 約 90%
             }
+
+            if (hasLight) {
+                const lx = coords.x + 0.14 + Math.sin(item.s * 0.5) * 0.02;
+                const ly = coords.y + 0.80 + Math.cos(item.r * 0.8) * 0.03;
+                const lz = coords.z - 0.14;
+
+                lightstickLocalPositions.push({ 
+                    index: lightIdx,
+                    x: lx, 
+                    y: ly, 
+                    z: lz, 
+                    offset: (item.r * 1.5 + item.s * 0.8),
+                    baseRotZ: -0.25 + (Math.sin(item.s) * 0.08)
+                });
+
+                dummyLight.position.set(lx, ly, lz);
+                dummyLight.rotation.set(0.3, 0.1, -0.25);
+                dummyLight.scale.set(1, 1, 1);
+            } else {
+                dummyLight.position.set(0, -99, 0);
+                dummyLight.scale.set(0, 0, 0);
+            }
+
+            dummyLight.updateMatrix();
+            audienceLightsMesh.setMatrixAt(i, dummyLight.matrix);
+            lightIdx++;
         }
 
         audienceHeadMesh.instanceMatrix.needsUpdate = true;
@@ -1066,6 +1080,7 @@
         currentYaw = targetYaw;
         currentPitch = targetPitch;
 
+        // 生成前方與同排鄰座觀眾
         updateFrontAudience(r, s, layout);
 
         document.getElementById('hudBrief').innerHTML = `📍 第 ${r} 排 ${s} 號 · ${stats.zoneName.split(' ')[0]} ｜ ${stats.distance.toFixed(1)}m`;
@@ -1154,10 +1169,9 @@
 
     window.onload = () => {
         init3D();
-        applyLightstickArtist(); // 載入預設 KEY 漸層湖水綠手燈
-        applySeatView(false);    // 載入預設 11 排 75 號
+        applyLightstickArtist();
+        applySeatView(false);
     };
 </script>
 </body>
 </html>
-
