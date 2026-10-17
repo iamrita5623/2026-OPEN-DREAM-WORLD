@@ -54,7 +54,7 @@
         }
         .hud-overlay:active { transform: scale(0.96); }
 
-        /* 右下角懸浮按鈕組 */
+        /* 右下角懸浮按鈕組 (保留上方手燈開關) */
         .fov-toggle {
             position: absolute;
             bottom: 84px;
@@ -78,11 +78,15 @@
             transition: all 0.2s ease;
         }
         .fov-btn:active { transform: scale(0.92); background: #2f3a6e; }
-        .fov-btn.active { background: #d83d89; border-color: #ff66aa; }
+        /* 湖水綠手燈啟動態 */
+        .fov-btn.lightstick-active { 
+            background: #23b6af !important; 
+            border-color: #55ebd7 !important; 
+            color: #061f1d !important;
+            box-shadow: 0 0 12px rgba(35, 182, 175, 0.6);
+        }
 
-        /* =======================================================
-           可直接「手指滑動拖曳」的底部懸浮抽屜 (Bottom Sheet)
-           ======================================================= */
+        /* 底部抽屜 (可隨手指上下拖拉) */
         .bottom-sheet {
             position: absolute;
             bottom: 0;
@@ -99,7 +103,6 @@
             flex-direction: column;
             max-height: 82vh;
             touch-action: none;
-            /* 預設位置透過 JS 即時控制 */
             transform: translateY(calc(100% - 68px));
         }
 
@@ -156,7 +159,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            touch-action: pan-y; /* 內部允許垂直滑動表單 */
+            touch-action: pan-y;
         }
 
         .input-group {
@@ -220,15 +223,15 @@
         <span id="hudBrief">📍 第 2 排 20 號 · 超級搖滾區</span>
     </div>
 
-    <!-- 右下角鏡頭焦距與手燈開關 -->
+    <!-- 右下角鏡頭焦距與手燈開關 (保留此處按鈕) -->
     <div class="fov-toggle">
-        <button class="fov-btn" id="lightstickBtn" onclick="toggleLightsticks()">✨ 手燈</button>
+        <button class="fov-btn lightstick-active" id="lightstickBtn" onclick="toggleLightsticks()">✨ 手燈</button>
         <button class="fov-btn" onclick="setFOV(65)">1×</button>
         <button class="fov-btn" onclick="setFOV(95)">0.5×</button>
         <button class="fov-btn" onclick="resetToOverview()">全場</button>
     </div>
 
-    <!-- 支援「手指拖曳往上拉」的底部抽屜 -->
+    <!-- 支援「手指拖曳往上拉」的底部抽屜 (已移除抽屜內重複的手燈選單) -->
     <div class="bottom-sheet animating" id="bottomSheet">
         <div class="sheet-header" id="sheetHandle">
             <div class="sheet-pill-bar"></div>
@@ -248,14 +251,6 @@
             </div>
 
             <div class="input-group">
-                <label>應援手燈氛圍</label>
-                <select id="lightstickSelect" onchange="toggleLightsticks(this.value)">
-                    <option value="on" selected>💖 開啟 (浪漫應援燈海)</option>
-                    <option value="off">🌑 關閉 (白天彩排視角)</option>
-                </select>
-            </div>
-
-            <div class="input-group">
                 <label>觀看姿勢</label>
                 <select id="postureSelect" onchange="applySeatView()">
                     <option value="sit" selected>🪑 坐姿 (真實折疊椅眼高)</option>
@@ -264,7 +259,7 @@
             </div>
 
             <div class="input-group">
-                <label>模擬身高</label>
+                <label>身高校正</label>
                 <div>
                     <input type="number" id="viewerHeight" value="165" min="130" max="210"> cm
                 </div>
@@ -298,7 +293,7 @@
     let seatInstancedMesh = null;
     let audienceHeadMesh = null;
     let audienceBodyMesh = null;
-    let audienceLightsMesh = null; // 手燈 InstancedMesh
+    let audienceLightsMesh = null;
 
     let idolGroup; 
     let idolWorldPos = new THREE.Vector3(0, 3.2, -1.8);
@@ -317,9 +312,7 @@
 
     let showLightsticks = true;
 
-    // =========================================================================
-    // 【真實手指拖曳手勢抽屜 (Touch Drag)】
-    // =========================================================================
+    // 手指拖曳手勢抽屜邏輯
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -327,8 +320,7 @@
     let isDragging = false;
     let startY = 0;
     let currentTranslateY = 0;
-    let sheetHeight = 0;
-    const collapsedPeek = 68; // 底部露出的把手高度
+    const collapsedPeek = 68;
 
     function initBottomSheetGestures() {
         function getSheetMaxTranslate() {
@@ -340,7 +332,6 @@
             sheet.classList.remove('animating');
             startY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            // 讀取當前 transform 的 Y 值
             const style = window.getComputedStyle(sheet);
             const matrix = new WebKitCSSMatrix(style.transform);
             currentTranslateY = matrix.m42;
@@ -355,7 +346,6 @@
             currentTranslateY += deltaY;
             const maxTranslate = getSheetMaxTranslate();
 
-            // 限制拖曳範圍 (不超出全開與全縮)
             if (currentTranslateY < 0) currentTranslateY = 0;
             if (currentTranslateY > maxTranslate) currentTranslateY = maxTranslate;
 
@@ -368,13 +358,10 @@
             sheet.classList.add('animating');
 
             const maxTranslate = getSheetMaxTranslate();
-            // 判斷放手位置：超過一半就自動展開或收回
             if (currentTranslateY < maxTranslate * 0.6) {
-                // 展開
                 sheet.style.transform = `translateY(0px)`;
                 toggleText.innerText = '往下拉收起 ▼';
             } else {
-                // 收縮
                 sheet.style.transform = `translateY(${maxTranslate}px)`;
                 toggleText.innerText = '往上拉展開 ▲';
             }
@@ -540,7 +527,7 @@
         headerBanner.position.set(0, 9.8, -0.2);
         scene.add(headerBanner);
 
-        // 後方結構柱
+        // 後方立柱
         const pGeo = new THREE.BoxGeometry(0.8, 11, 0.8);
         [[-9.5, -7.5], [9.5, -7.5]].forEach(pos => {
             const p = new THREE.Mesh(pGeo, trussMat);
@@ -548,7 +535,7 @@
             scene.add(p);
         });
 
-        // 正中央主視覺 LED
+        // 主視覺 LED
         mainScreenCanvas = document.createElement('canvas');
         mainScreenCanvas.width = 1024;
         mainScreenCanvas.height = 512;
@@ -558,7 +545,7 @@
         mainScreen.position.set(0, 6.2, -7.8);
         scene.add(mainScreen);
 
-        // 懸吊線性陣列音響
+        // 懸吊線性音響
         const lineArrayGeo = new THREE.BoxGeometry(0.7, 0.35, 0.5);
         const paMat = new THREE.MeshStandardMaterial({ color: 0x08080a });
         [-10.5, 10.5].forEach(xPos => {
@@ -657,7 +644,7 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與發光應援手燈群
+    // 前方觀眾與【湖水綠 #23b6af・不高於頭部】應援手燈群
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -684,9 +671,9 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 【應援發光手燈 (棒狀發光體)】
-        const lightGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.25, 8);
-        const lightMat = new THREE.MeshBasicMaterial({ color: 0xff3399 }); // 桃粉應援色
+        // 【湖水綠 #23b6af 專屬應援手燈】(微型化 18cm，不高於頭部)
+        const lightGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.18, 8);
+        const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
 
         const dummyHead = new THREE.Object3D();
@@ -698,19 +685,19 @@
             for (let s = minS; s <= maxS; s++) {
                 const coords = calculateCoordinates(r, s, layout);
                 
-                // 觀眾頭部
+                // 坐姿頭部頂點約在 y + 0.96m
                 dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
                 dummyHead.updateMatrix();
                 audienceHeadMesh.setMatrixAt(idx, dummyHead.matrix);
 
-                // 觀眾身體
+                // 坐姿身體
                 dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 觀眾右手高舉的手燈 (斜向右前方舉起)
-                dummyLight.position.set(coords.x + 0.16, coords.y + 1.15, coords.z - 0.12);
-                dummyLight.rotation.set(0.3, 0.2, -0.4);
+                // 【高度嚴格校正】：右手握在胸前 (y + 0.78m)，斜往前揮，絕對低於頭部 (y + 0.96m)，不遮視線
+                dummyLight.position.set(coords.x + 0.14, coords.y + 0.78, coords.z - 0.18);
+                dummyLight.rotation.set(0.4, 0.2, -0.3); // 自然前傾手勢
                 dummyLight.updateMatrix();
                 audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
 
@@ -730,20 +717,15 @@
         }
     }
 
-    function toggleLightsticks(forceState = null) {
-        if (forceState !== null) {
-            showLightsticks = (forceState === 'on');
-        } else {
-            showLightsticks = !showLightsticks;
-            document.getElementById('lightstickSelect').value = showLightsticks ? 'on' : 'off';
-        }
-
+    // 懸浮手燈開關切換
+    function toggleLightsticks() {
+        showLightsticks = !showLightsticks;
         const btn = document.getElementById('lightstickBtn');
         if (showLightsticks) {
-            btn.classList.add('active');
+            btn.classList.add('lightstick-active');
             if (audienceLightsMesh) scene.add(audienceLightsMesh);
         } else {
-            btn.classList.remove('active');
+            btn.classList.remove('lightstick-active');
             if (audienceLightsMesh) scene.remove(audienceLightsMesh);
         }
     }
@@ -798,6 +780,7 @@
             screenCtx.fillStyle = 'rgba(216, 61, 137, 0.28)';
             screenCtx.fill();
 
+            // 偶像上半身特寫
             screenCtx.fillStyle = '#ffdfd0';
             screenCtx.beginPath();
             screenCtx.arc(320, 150 + Math.sin(time * 2) * 4, 45, 0, Math.PI * 2);
@@ -979,9 +962,9 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 應援手燈輕微揮動呼吸動態
+        // 湖水綠手燈胸前輕微隨節奏揮動
         if (audienceLightsMesh && showLightsticks) {
-            audienceLightsMesh.rotation.z = Math.sin(time * 3) * 0.05;
+            audienceLightsMesh.rotation.z = Math.sin(time * 3) * 0.04;
         }
 
         renderScreens(time);
@@ -992,7 +975,6 @@
 
     window.onload = () => {
         init3D();
-        document.getElementById('lightstickBtn').classList.add('active');
     };
 </script>
 </body>
