@@ -13,7 +13,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            position: fixed; /* 徹底封鎖 iOS Safari 滾動位移 */
+            position: fixed;
             background-color: #060810;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #fff;
@@ -34,7 +34,7 @@
         #viewport:active { cursor: grabbing; }
         #canvas3d { width: 100%; height: 100%; display: block; }
 
-        /* 左上角懸浮膠囊 (避開 iPhone 瀏海與動態島) */
+        /* 左上角懸浮膠囊 */
         .hud-overlay {
             position: fixed;
             top: calc(env(safe-area-inset-top, 24px) + 12px);
@@ -85,7 +85,7 @@
             box-shadow: 0 0 12px rgba(35, 182, 175, 0.6);
         }
 
-        /* 底部抽屜 (改為 fixed 鎖死在螢幕底部) */
+        /* 底部抽屜 */
         .bottom-sheet {
             position: fixed;
             bottom: 0;
@@ -329,7 +329,6 @@
 
     let showLightsticks = true;
 
-    // 抽屜控制常數
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -401,7 +400,6 @@
         window.addEventListener('mousemove', onTouchMove);
         window.addEventListener('mouseup', onTouchEnd);
 
-        // 【關鍵修復】：防止鍵盤收起時畫面位移卡住
         document.querySelectorAll('input, select').forEach(el => {
             el.addEventListener('blur', () => {
                 setTimeout(() => {
@@ -428,23 +426,35 @@
         }
     }
 
+    // =========================================================================
+    // 【核心修復】：在 54 號與 55 號之間加入寬度充足的「中央走道」
+    // =========================================================================
     function calculateCoordinates(r, s, layout) {
         let v_aisles = layout === 'decreasing' ? [15, 29, 42, 66, 79, 93] : [4, 14, 24, 34, 44, 64, 74, 84, 94, 104];
         
         let z = 5.0 + (r - 1) * 0.85;
         if (r > 10) z += 1.6;
         if (r > 20) z += 1.6;
-        if (r > 24) z += 3.2;
+        if (r > 24) z += 3.2; // 橫向跨區走道
         if (r > 34) z += 1.6;
+
+        // 54 號與 55 號中央走道半寬 (走道總寬度 = 0.85 * 2 = 1.7m)
+        const centerAisleHalfWidth = 0.85;
 
         let x = 0;
         if (s <= 54) {
-            for (let i = s; i < 54; i++) { x += 0.50; if (v_aisles.includes(i)) x += 1.2; }
-            x += 0.28;
+            for (let i = s; i < 54; i++) { 
+                x += 0.50; 
+                if (v_aisles.includes(i)) x += 1.2; 
+            }
+            x += centerAisleHalfWidth;
             x = -x;
         } else {
-            for (let i = 55; i < s; i++) { x += 0.50; if (v_aisles.includes(i)) x += 1.2; }
-            x += 0.28;
+            for (let i = 55; i < s; i++) { 
+                x += 0.50; 
+                if (v_aisles.includes(i)) x += 1.2; 
+            }
+            x += centerAisleHalfWidth;
         }
 
         let y = 0.0;
@@ -729,7 +739,6 @@
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 約 50% 隨機拿手燈
                 const hasLight = ( (r * 7 + s * 13) % 10 < 5 ); 
 
                 if (hasLight) {
@@ -982,7 +991,6 @@
             toggleText.innerText = '展開選位 ▲';
         }
 
-        // 確保手機滾動位置絕對歸零
         window.scrollTo(0, 0);
         document.body.scrollTop = 0;
     }
