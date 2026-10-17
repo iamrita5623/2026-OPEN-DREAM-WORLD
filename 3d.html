@@ -54,7 +54,7 @@
         }
         .hud-overlay:active { transform: scale(0.96); }
 
-        /* 右下角懸浮按鈕組 (保留上方手燈開關) */
+        /* 右下角懸浮按鈕組 */
         .fov-toggle {
             position: absolute;
             bottom: 84px;
@@ -78,7 +78,6 @@
             transition: all 0.2s ease;
         }
         .fov-btn:active { transform: scale(0.92); background: #2f3a6e; }
-        /* 湖水綠手燈啟動態 */
         .fov-btn.lightstick-active { 
             background: #23b6af !important; 
             border-color: #55ebd7 !important; 
@@ -162,6 +161,17 @@
             touch-action: pan-y;
         }
 
+        .disclaimer-banner {
+            font-size: 11px;
+            color: #f39c12;
+            background: rgba(243, 156, 18, 0.12);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+            border-radius: 6px;
+            padding: 6px 10px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
         .input-group {
             display: flex;
             align-items: center;
@@ -223,7 +233,7 @@
         <span id="hudBrief">📍 第 2 排 20 號 · 超級搖滾區</span>
     </div>
 
-    <!-- 右下角鏡頭焦距與手燈開關 (保留此處按鈕) -->
+    <!-- 右下角懸浮按鈕組 -->
     <div class="fov-toggle">
         <button class="fov-btn lightstick-active" id="lightstickBtn" onclick="toggleLightsticks()">✨ 手燈</button>
         <button class="fov-btn" onclick="setFOV(65)">1×</button>
@@ -231,7 +241,7 @@
         <button class="fov-btn" onclick="resetToOverview()">全場</button>
     </div>
 
-    <!-- 支援「手指拖曳往上拉」的底部抽屜 (已移除抽屜內重複的手燈選單) -->
+    <!-- 底部抽屜 -->
     <div class="bottom-sheet animating" id="bottomSheet">
         <div class="sheet-header" id="sheetHandle">
             <div class="sheet-pill-bar"></div>
@@ -245,6 +255,11 @@
         </div>
 
         <div class="sheet-body">
+            <!-- 依需求加入專屬警示免責文字 -->
+            <div class="disclaimer-banner">
+                ※ 本圖僅供參考，實際排法請以現場為準
+            </div>
+
             <div class="color-legend">
                 <div class="legend-badge"><span class="dot" style="background:#D83D89;"></span>超級搖滾區 (1~24排)</div>
                 <div class="legend-badge"><span class="dot" style="background:#6C2D8E;"></span>搖滾區 (25~43排)</div>
@@ -295,6 +310,9 @@
     let audienceBodyMesh = null;
     let audienceLightsMesh = null;
 
+    // 手燈基準座標快取，用於局部原位左右微搖
+    let lightstickLocalPositions = [];
+
     let idolGroup; 
     let idolWorldPos = new THREE.Vector3(0, 3.2, -1.8);
     let sideScreenTexture, screenCanvas, screenCtx;
@@ -312,7 +330,7 @@
 
     let showLightsticks = true;
 
-    // 手指拖曳手勢抽屜邏輯
+    // 手指拖曳抽屜手勢
     const sheet = document.getElementById('bottomSheet');
     const handle = document.getElementById('sheetHandle');
     const toggleText = document.getElementById('sheetToggleText');
@@ -535,7 +553,7 @@
             scene.add(p);
         });
 
-        // 主視覺 LED
+        // 正中央主視覺 LED
         mainScreenCanvas = document.createElement('canvas');
         mainScreenCanvas.width = 1024;
         mainScreenCanvas.height = 512;
@@ -644,7 +662,7 @@
         scene.add(seatInstancedMesh);
     }
 
-    // 前方觀眾與【湖水綠 #23b6af・不高於頭部】應援手燈群
+    // 前方觀眾與【胸前低矮、微幅左右輕擺】湖水綠手燈
     function updateFrontAudience(currentR, currentS, layout) {
         if (audienceHeadMesh) scene.remove(audienceHeadMesh);
         if (audienceBodyMesh) scene.remove(audienceBodyMesh);
@@ -652,6 +670,7 @@
         audienceHeadMesh = null;
         audienceBodyMesh = null;
         audienceLightsMesh = null;
+        lightstickLocalPositions = [];
 
         if (currentR <= 1) return;
 
@@ -671,8 +690,8 @@
         const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2d38, roughness: 0.6 });
         audienceBodyMesh = new THREE.InstancedMesh(bodyGeo, clothMat, totalAudience);
 
-        // 【湖水綠 #23b6af 專屬應援手燈】(微型化 18cm，不高於頭部)
-        const lightGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.18, 8);
+        // 湖水綠手燈：精緻化長度 14cm，細緻棒身
+        const lightGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.14, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x23b6af }); 
         audienceLightsMesh = new THREE.InstancedMesh(lightGeo, lightMat, totalAudience);
 
@@ -685,19 +704,25 @@
             for (let s = minS; s <= maxS; s++) {
                 const coords = calculateCoordinates(r, s, layout);
                 
-                // 坐姿頭部頂點約在 y + 0.96m
+                // 坐姿頭頂 (y + 0.96m)
                 dummyHead.position.set(coords.x, coords.y + 0.96, coords.z);
                 dummyHead.updateMatrix();
                 audienceHeadMesh.setMatrixAt(idx, dummyHead.matrix);
 
-                // 坐姿身體
+                // 坐姿軀幹
                 dummyBody.position.set(coords.x, coords.y + 0.68, coords.z);
                 dummyBody.updateMatrix();
                 audienceBodyMesh.setMatrixAt(idx, dummyBody.matrix);
 
-                // 【高度嚴格校正】：右手握在胸前 (y + 0.78m)，斜往前揮，絕對低於頭部 (y + 0.96m)，不遮視線
-                dummyLight.position.set(coords.x + 0.14, coords.y + 0.78, coords.z - 0.18);
-                dummyLight.rotation.set(0.4, 0.2, -0.3); // 自然前傾手勢
+                // 手燈握在胸前偏右下位置 (高度 y + 0.65m，遠低於人頭 0.96m，絕不擋舞台)
+                const lx = coords.x + 0.12;
+                const ly = coords.y + 0.65;
+                const lz = coords.z - 0.15;
+
+                lightstickLocalPositions.push({ x: lx, y: ly, z: lz, offset: Math.sin(idx * 0.7) });
+
+                dummyLight.position.set(lx, ly, lz);
+                dummyLight.rotation.set(0.15, 0, 0); // 握在胸前垂直微前傾
                 dummyLight.updateMatrix();
                 audienceLightsMesh.setMatrixAt(idx, dummyLight.matrix);
 
@@ -717,7 +742,6 @@
         }
     }
 
-    // 懸浮手燈開關切換
     function toggleLightsticks() {
         showLightsticks = !showLightsticks;
         const btn = document.getElementById('lightstickBtn');
@@ -780,7 +804,6 @@
             screenCtx.fillStyle = 'rgba(216, 61, 137, 0.28)';
             screenCtx.fill();
 
-            // 偶像上半身特寫
             screenCtx.fillStyle = '#ffdfd0';
             screenCtx.beginPath();
             screenCtx.arc(320, 150 + Math.sin(time * 2) * 4, 45, 0, Math.PI * 2);
@@ -917,6 +940,7 @@
             <span class="advice-item">📐 舞台直線距離：<b>${stats.distance.toFixed(1)}m</b></span>
             <span class="advice-item">🪑 視點高度：<b>${(coords.y + eyeHeight).toFixed(2)}m</b> (真實平地坐姿)</span>
             <span class="advice-item">👁️ 水平偏角：<b>${stats.angle.toFixed(1)}°</b></span>
+            <div style="font-size: 11px; color: #f39c12; margin-top: 6px;">※ 本圖僅供參考，實際排法請以現場為準</div>
         `;
 
         if (autoCollapse) {
@@ -939,6 +963,7 @@
         audienceHeadMesh = null;
         audienceBodyMesh = null;
         audienceLightsMesh = null;
+        lightstickLocalPositions = [];
 
         isOverview = true;
         camera.fov = 65;
@@ -952,6 +977,9 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    // 核心渲染動畫：手燈在原地「微幅左右輕擺」，絕不飛上高空
+    const dummyLightTick = new THREE.Object3D();
+
     function animate(currentTime) {
         requestAnimationFrame(animate);
 
@@ -962,9 +990,19 @@
             idolGroup.rotation.y = Math.sin(time * 1.2) * 0.12;
         }
 
-        // 湖水綠手燈胸前輕微隨節奏揮動
-        if (audienceLightsMesh && showLightsticks) {
-            audienceLightsMesh.rotation.z = Math.sin(time * 3) * 0.04;
+        // 手燈在每位觀眾胸前原位輕微左右搖晃 (擺幅僅約 ±0.15 弧度，約 8 度)
+        if (audienceLightsMesh && showLightsticks && lightstickLocalPositions.length > 0) {
+            for (let i = 0; i < lightstickLocalPositions.length; i++) {
+                const pos = lightstickLocalPositions[i];
+                const waveAngle = Math.sin(time * 2.8 + pos.offset) * 0.14; // 微幅左右搖擺
+                
+                dummyLightTick.position.set(pos.x, pos.y, pos.z);
+                dummyLightTick.rotation.set(0.15, 0, waveAngle); // 僅左右傾斜，不高於頭
+                dummyLightTick.updateMatrix();
+                
+                audienceLightsMesh.setMatrixAt(i, dummyLightTick.matrix);
+            }
+            audienceLightsMesh.instanceMatrix.needsUpdate = true;
         }
 
         renderScreens(time);
